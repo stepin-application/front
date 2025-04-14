@@ -4,7 +4,7 @@ import { Check, Sparkles, Zap, Crown, Brain, Target, Rocket, FileText, ChartBar,
 
 export default function Services() {
   return (
-    <section id="services" className="min-h-screen flex items-center justify-center py-20 bg-gradient-to-b from-gray-50 to-white">
+    <section id="services" className="min-h-screen flex items-center justify-center py-20">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <Badge variant="outline" className="mb-4 bg-purple-100 text-purple-700 border-purple-200">

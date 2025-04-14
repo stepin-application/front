@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from 'react';
-import { GraduationCap, Mail, Lock, Eye, EyeOff, MapPin, Globe, Phone, Users } from 'lucide-react';
+import { GraduationCap, Mail, Lock, Eye, EyeOff, MapPin, Globe, Phone, Users, Info } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SchoolForm() {
@@ -19,6 +19,19 @@ export default function SchoolForm() {
     programs: ''
   });
 
+  const tooltips = {
+    schoolName: "Entrez le nom officiel complet de votre établissement",
+    email: "Utilisez une adresse email professionnelle de votre établissement",
+    password: "Minimum 8 caractères, incluant lettres, chiffres et caractères spéciaux",
+    type: "Sélectionnez la catégorie qui correspond le mieux à votre établissement",
+    address: "Adresse physique complète de votre établissement",
+    website: "URL complète de votre site web (commençant par http:// ou https://)",
+    phone: "Numéro de téléphone au format international ou national",
+    studentCount: "Nombre total d'étudiants actuellement inscrits",
+    programs: "Liste des formations, diplômes et certifications proposés",
+    description: "Présentation détaillée de votre établissement, son histoire et ses valeurs"
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: Implémenter la logique d'inscription
@@ -28,9 +41,17 @@ export default function SchoolForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
-        <label htmlFor="schoolName" className="text-sm font-medium text-gray-700">
-          Nom de l'école
-        </label>
+        <div className="flex items-center justify-between">
+          <label htmlFor="schoolName" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+            Nom de l'école
+            <div className="group relative">
+              <Info className="h-4 w-4 text-gray-400 cursor-help" />
+              <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                {tooltips.schoolName}
+              </div>
+            </div>
+          </label>
+        </div>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <GraduationCap className="h-5 w-5 text-gray-400" />
@@ -49,9 +70,17 @@ export default function SchoolForm() {
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="email" className="text-sm font-medium text-gray-700">
-          Email
-        </label>
+        <div className="flex items-center justify-between">
+          <label htmlFor="email" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+            Email
+            <div className="group relative">
+              <Info className="h-4 w-4 text-gray-400 cursor-help" />
+              <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                {tooltips.email}
+              </div>
+            </div>
+          </label>
+        </div>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Mail className="h-5 w-5 text-gray-400" />
@@ -70,9 +99,17 @@ export default function SchoolForm() {
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="password" className="text-sm font-medium text-gray-700">
-          Mot de passe
-        </label>
+        <div className="flex items-center justify-between">
+          <label htmlFor="password" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+            Mot de passe
+            <div className="group relative">
+              <Info className="h-4 w-4 text-gray-400 cursor-help" />
+              <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                {tooltips.password}
+              </div>
+            </div>
+          </label>
+        </div>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Lock className="h-5 w-5 text-gray-400" />
@@ -103,9 +140,17 @@ export default function SchoolForm() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <label htmlFor="type" className="text-sm font-medium text-gray-700">
-            Type d'établissement
-          </label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="type" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              Type d'établissement
+              <div className="group relative">
+                <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                  {tooltips.type}
+                </div>
+              </div>
+            </label>
+          </div>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <GraduationCap className="h-5 w-5 text-gray-400" />
@@ -129,9 +174,17 @@ export default function SchoolForm() {
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="studentCount" className="text-sm font-medium text-gray-700">
-            Nombre d'étudiants
-          </label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="studentCount" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              Nombre d'étudiants
+              <div className="group relative">
+                <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                  {tooltips.studentCount}
+                </div>
+              </div>
+            </label>
+          </div>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Users className="h-5 w-5 text-gray-400" />
@@ -151,9 +204,17 @@ export default function SchoolForm() {
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="address" className="text-sm font-medium text-gray-700">
-          Adresse
-        </label>
+        <div className="flex items-center justify-between">
+          <label htmlFor="address" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+            Adresse
+            <div className="group relative">
+              <Info className="h-4 w-4 text-gray-400 cursor-help" />
+              <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                {tooltips.address}
+              </div>
+            </div>
+          </label>
+        </div>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <MapPin className="h-5 w-5 text-gray-400" />
@@ -173,9 +234,17 @@ export default function SchoolForm() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <label htmlFor="website" className="text-sm font-medium text-gray-700">
-            Site web
-          </label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="website" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              Site web
+              <div className="group relative">
+                <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                  {tooltips.website}
+                </div>
+              </div>
+            </label>
+          </div>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Globe className="h-5 w-5 text-gray-400" />
@@ -193,9 +262,17 @@ export default function SchoolForm() {
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="phone" className="text-sm font-medium text-gray-700">
-            Téléphone
-          </label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="phone" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              Téléphone
+              <div className="group relative">
+                <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                  {tooltips.phone}
+                </div>
+              </div>
+            </label>
+          </div>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Phone className="h-5 w-5 text-gray-400" />
@@ -214,9 +291,17 @@ export default function SchoolForm() {
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="programs" className="text-sm font-medium text-gray-700">
-          Programmes proposés
-        </label>
+        <div className="flex items-center justify-between">
+          <label htmlFor="programs" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+            Programmes proposés
+            <div className="group relative">
+              <Info className="h-4 w-4 text-gray-400 cursor-help" />
+              <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                {tooltips.programs}
+              </div>
+            </div>
+          </label>
+        </div>
         <textarea
           id="programs"
           name="programs"
@@ -229,9 +314,17 @@ export default function SchoolForm() {
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="description" className="text-sm font-medium text-gray-700">
-          Description de l'école
-        </label>
+        <div className="flex items-center justify-between">
+          <label htmlFor="description" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+            Description de l'école
+            <div className="group relative">
+              <Info className="h-4 w-4 text-gray-400 cursor-help" />
+              <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                {tooltips.description}
+              </div>
+            </div>
+          </label>
+        </div>
         <textarea
           id="description"
           name="description"

@@ -117,9 +117,6 @@ export default function Partners() {
 
   return (
     <section id="partners" className="min-h-screen relative overflow-hidden py-24">
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-50 via-white to-indigo-50">
-        <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_30%_50%,rgba(139,92,246,0.1),transparent_50%),radial-gradient(circle_at_70%_30%,rgba(99,102,241,0.1),transparent_50%)]" />
-      </div>
 
       <div className="container relative mx-auto px-4">
         <div className="text-center mb-20">

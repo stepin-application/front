@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
+import { Toaster } from "sonner";
+import Background from "@/components/ui/Background";
 
 const geistSans = Geist({
   subsets: ["latin"],
@@ -27,10 +29,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <Header />
-      
-      <body className="antialiased mt-10">
-        {children}
+      <body className="antialiased min-h-screen bg-gradient-to-b from-slate-50 to-white relative">
+        <Background />
+        <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
+        <Header />
+        <main className="pt-10 relative">
+          <Toaster richColors />
+          {children}
+        </main>
       </body>
     </html>
   );

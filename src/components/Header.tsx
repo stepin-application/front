@@ -3,28 +3,17 @@
 import React, { useState } from 'react';
 import { Sparkles, Menu, X, Home, Megaphone, Building, LogIn, UserPlus } from "lucide-react";
 import Link from 'next/link';
+import { Button } from './ui/button';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navItems = [
     { 
-      name: "Accueil", 
-      href: "/", 
-      icon: Home,
-      description: "Retour à la page d'accueil"
-    },
-    { 
       name: "Campagnes", 
       href: "/campaigns", 
       icon: Megaphone,
       description: "Découvrez nos campagnes"
-    },
-    { 
-      name: "Entreprises", 
-      href: "/campaigns/company", 
-      icon: Building,
-      description: "Espace entreprises"
     }
   ];
 
@@ -55,25 +44,28 @@ export default function Header() {
               </Link>
             ))}
             
-            <div className="flex items-center space-x-3 ml-4">
-              <Link
-                href="/login"
-                className="px-4 py-1.5 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors duration-200 flex items-center space-x-1"
-              >
-                <LogIn className="w-4 h-4" />
-                <span>Connexion</span>
-              </Link>
-              <Link
-                href="/register"
-                className="px-4 py-1.5 text-sm text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 shadow-md shadow-purple-500/20 hover:shadow-purple-500/30 flex items-center space-x-1"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>S'inscrire</span>
-              </Link>
+            <div className="flex items-center">
+              <div className="h-6 w-px bg-gray-400 mx-4"></div>
+              <div className="flex items-center space-x-3">
+                <Link
+                  href="/login"
+                  className="px-4 py-1.5 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors duration-200 flex items-center space-x-1"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>Connexion</span>
+                </Link>
+                <Link
+                  href="/register"
+                  className="px-4 py-1.5 text-sm text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 shadow-md shadow-purple-500/20 hover:shadow-purple-500/30 flex items-center space-x-1"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>S'inscrire</span>
+                </Link>
+              </div>
             </div>
           </div>
           
-          <button 
+          <Button 
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="md:hidden p-1.5 rounded-lg bg-gradient-to-br from-purple-100 to-indigo-100 hover:from-purple-200 hover:to-indigo-200 transition-all duration-300"
           >
@@ -82,7 +74,7 @@ export default function Header() {
             ) : (
               <Menu className="w-5 h-5 text-purple-600" />
             )}
-          </button>
+          </Button>
         </div>
 
         {/* Mobile menu */}
