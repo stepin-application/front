@@ -53,7 +53,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '2',
       name: 'HEC Paris',
-      logo: '/logos/hec.png',
+      logo: '/logos/google.png',
     },
     target: 'both',
     startDate: '2024-05-15',
@@ -75,7 +75,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '3',
       name: '42',
-      logo: '/logos/42.png',
+      logo: '/logos/google.png',
     },
     target: 'students',
     startDate: '2024-07-01',
@@ -119,7 +119,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '5',
       name: 'ESSEC',
-      logo: '/logos/essec.png',
+      logo: '/logos/google.png',
     },
     target: 'both',
     startDate: '2024-03-01',
@@ -141,7 +141,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '6',
       name: 'Orange',
-      logo: '/logos/orange.png',
+      logo: '/logos/google.png',
     },
     target: 'students',
     startDate: '2024-09-15',
@@ -163,7 +163,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '7',
       name: 'CentraleSupélec',
-      logo: '/logos/centralesupelec.png',
+      logo: '/logos/google.png',
     },
     target: 'both',
     startDate: '2024-04-20',
@@ -185,7 +185,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '8',
       name: 'Ubisoft',
-      logo: '/logos/ubisoft.png',
+      logo: '/logos/google.png',
     },
     target: 'students',
     startDate: '2024-07-01',
@@ -207,7 +207,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '9',
       name: 'MINES ParisTech',
-      logo: '/logos/mines.png',
+      logo: '/logos/google.png',
     },
     target: 'students',
     startDate: '2024-10-15',
@@ -229,7 +229,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '10',
       name: 'L\'Oréal',
-      logo: '/logos/loreal.png',
+      logo: '/logos/google.png',
     },
     target: 'students',
     startDate: '2024-06-01',
@@ -251,7 +251,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '11',
       name: 'Deloitte',
-      logo: '/logos/deloitte.png',
+      logo: '/logos/google.png',
     },
     target: 'students',
     startDate: '2024-07-01',
@@ -273,7 +273,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '12',
       name: 'Sciences Po Paris',
-      logo: '/logos/sciencespo.png',
+      logo: '/logos/google.png',
     },
     target: 'both',
     startDate: '2024-11-05',
@@ -295,7 +295,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '13',
       name: 'Thales',
-      logo: '/logos/thales.png',
+      logo: '/logos/google.png',
     },
     target: 'students',
     startDate: '2024-09-01',
@@ -317,7 +317,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '14',
       name: 'École Polytechnique',
-      logo: '/logos/polytechnique.png',
+      logo: '/logos/google.png',
     },
     target: 'students',
     startDate: '2024-11-20',
@@ -339,7 +339,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '15',
       name: 'Société Générale',
-      logo: '/logos/socgen.png',
+      logo: '/logos/google.png',
     },
     target: 'students',
     startDate: '2024-09-15',
@@ -361,7 +361,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '16',
       name: 'Danone',
-      logo: '/logos/danone.png',
+      logo: '/logos/google.png',
     },
     target: 'students',
     startDate: '2024-07-01',
@@ -383,7 +383,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '17',
       name: 'ESIEE Paris',
-      logo: '/logos/esiee.png',
+      logo: '/logos/google.png',
     },
     target: 'both',
     startDate: '2024-05-25',
@@ -405,7 +405,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '18',
       name: 'Capgemini',
-      logo: '/logos/capgemini.png',
+      logo: '/logos/google.png',
     },
     target: 'students',
     startDate: '2024-09-01',
@@ -427,7 +427,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '19',
       name: 'ENSTA Paris',
-      logo: '/logos/ensta.png',
+      logo: '/logos/google.png',
     },
     target: 'students',
     startDate: '2024-10-10',
@@ -449,7 +449,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '20',
       name: 'KPMG',
-      logo: '/logos/kpmg.png',
+      logo: '/logos/google.png',
     },
     target: 'students',
     startDate: '2024-09-01',
@@ -471,7 +471,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '21',
       name: 'Decathlon',
-      logo: '/logos/decathlon.png',
+      logo: '/logos/google.png',
     },
     target: 'students',
     startDate: '2024-07-01',
@@ -493,7 +493,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '22',
       name: 'EPITA',
-      logo: '/logos/epita.png',
+      logo: '/logos/google.png',
     },
     target: 'both',
     startDate: '2024-06-15',
@@ -515,7 +515,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '23',
       name: 'Airbus',
-      logo: '/logos/airbus.png',
+      logo: '/logos/google.png',
     },
     target: 'students',
     startDate: '2024-09-01',
@@ -537,7 +537,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '24',
       name: 'Chanel',
-      logo: '/logos/chanel.png',
+      logo: '/logos/google.png',
     },
     target: 'students',
     startDate: '2024-07-01',
@@ -559,7 +559,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '25',
       name: 'BNP Paribas',
-      logo: '/logos/bnp.png',
+      logo: '/logos/google.png',
     },
     target: 'students',
     startDate: '2024-09-01',
@@ -581,7 +581,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '26',
       name: 'ENSAE Paris',
-      logo: '/logos/ensae.png',
+      logo: '/logos/google.png',
     },
     target: 'students',
     startDate: '2024-11-01',
@@ -603,7 +603,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '27',
       name: 'Spotify',
-      logo: '/logos/spotify.png',
+      logo: '/logos/google.png',
     },
     target: 'students',
     startDate: '2024-07-01',
@@ -625,7 +625,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '28',
       name: 'EDHEC',
-      logo: '/logos/edhec.png',
+      logo: '/logos/google.png',
     },
     target: 'both',
     startDate: '2024-05-20',
@@ -647,7 +647,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '29',
       name: 'EY',
-      logo: '/logos/ey.png',
+      logo: '/logos/google.png',
     },
     target: 'students',
     startDate: '2024-09-01',
@@ -669,7 +669,7 @@ export const campaignsData: Campaign[] = [
     createdBy: {
       id: '30',
       name: 'Tesla',
-      logo: '/logos/tesla.png',
+      logo: '/logos/google.png',
     },
     target: 'students',
     startDate: '2024-07-01',

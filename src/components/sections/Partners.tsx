@@ -55,42 +55,42 @@ const companies = [
 const schools = [
   {
     name: "42",
-    logo: "/logos/42.png",
+    logo: "/logos/microsoft.png",
     initials: "42",
     description: "École d'informatique innovante",
     type: "school"
   },
   {
     name: "HEC Paris",
-    logo: "/logos/hec.png",
+    logo: "/logos/microsoft.png",
     initials: "H",
     description: "École de commerce de premier plan",
     type: "school"
   },
   {
     name: "Polytechnique",
-    logo: "/logos/polytechnique.png",
+    logo: "/logos/microsoft.png",
     initials: "P",
     description: "Excellence en ingénierie",
     type: "school"
   },
   {
     name: "Sciences Po",
-    logo: "/logos/sciencespo.png",
+    logo: "/logos/microsoft.png",
     initials: "SP",
     description: "Institut d'études politiques",
     type: "school"
   },
   {
     name: "Centrale",
-    logo: "/logos/centrale.png",
+    logo: "/logos/microsoft.png",
     initials: "C",
     description: "Formation d'ingénieurs d'excellence",
     type: "school"
   },
   {
     name: "ESSEC",
-    logo: "/logos/essec.png",
+    logo: "/logos/microsoft.png",
     initials: "E",
     description: "Business school internationale",
     type: "school"
