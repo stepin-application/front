@@ -3,15 +3,17 @@
 import { useParams } from 'next/navigation';
 import { campaignsData } from '@/data/campaignsData';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Calendar, MapPin, Users, Building, GraduationCap, CheckCircle2, Clock, XCircle, Share2, BookmarkPlus, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Users, Building, GraduationCap, CheckCircle2, Clock, XCircle, Share2, BookmarkPlus, MessageCircle, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function CampaignDetailsPage() {
   const { id } = useParams();
+  const { user, isAuthenticated } = useAuth();
   const campaign = campaignsData.find(c => c.id === id);
 
   if (!campaign) {
@@ -57,8 +59,37 @@ export default function CampaignDetailsPage() {
     );
   };
 
+  // Vérifier si l'utilisateur peut candidater
+  const canApply = () => {
+    if (!isAuthenticated || user?.role !== 'student') return false;
+    if (campaign.status !== 'active') return false;
+    if (campaign.target !== 'students' && campaign.target !== 'both') return false;
+    
+    // Vérifier si la deadline étudiante est passée
+    const now = new Date();
+    const deadline = new Date(campaign.studentDeadline);
+    return now <= deadline;
+  };
+
+  // Vérifier si c'est une campagne de l'utilisateur connecté
+  const isOwnCampaign = () => {
+    if (!isAuthenticated) return false;
+    return campaign.createdBy.id === user?.companyId || campaign.createdBy.id === user?.schoolId;
+  };
+
+  // Calculer les jours restants pour candidater
+  const getDaysUntilDeadline = () => {
+    const now = new Date();
+    const deadline = new Date(campaign.studentDeadline);
+    const diffTime = deadline.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const daysUntilDeadline = getDaysUntilDeadline();
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white pt-20">
       <div className="max-w-5xl mx-auto px-4 py-8">
         
         {/* Header */}
@@ -81,6 +112,10 @@ export default function CampaignDetailsPage() {
                   <Badge variant="outline" className="text-xs">
                     {campaign.type === 'company' ? 'Entreprise' : 'École'}
                   </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {campaign.target === 'students' ? 'Étudiants' : 
+                     campaign.target === 'companies' ? 'Entreprises' : 'Mixte'}
+                  </Badge>
                 </div>
                 <h1 className="text-2xl font-medium text-gray-900">{campaign.title}</h1>
                 <p className="text-gray-500">{campaign.createdBy.name}</p>
@@ -88,20 +123,76 @@ export default function CampaignDetailsPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
-                <Share2 className="w-4 h-4" />
-              </Button>
-              <Button variant="outline" size="sm">
-                <BookmarkPlus className="w-4 h-4" />
-              </Button>
-              {campaign.status === 'active' && (
-                <Button size="sm">
-                  Postuler
-                </Button>
+              {isAuthenticated && (
+                <>
+                  <Button variant="outline" size="sm">
+                    <Share2 className="w-4 h-4" />
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    <BookmarkPlus className="w-4 h-4" />
+                  </Button>
+                </>
+              )}
+              
+              {/* Bouton de candidature pour étudiants */}
+              {user?.role === 'student' && (
+                <>
+                  {canApply() ? (
+                    <Link href={`/campaigns/${campaign.id}/apply`}>
+                      <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                        Candidater
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Button size="sm" disabled className="opacity-50">
+                      {campaign.status !== 'active' ? 'Campagne fermée' :
+                       daysUntilDeadline < 0 ? 'Deadline dépassée' : 'Non éligible'}
+                    </Button>
+                  )}
+                </>
+              )}
+
+              {/* Boutons pour propriétaires de campagne */}
+              {isOwnCampaign() && (
+                <div className="flex gap-2">
+                  <Link href={`/campaigns/${campaign.type}/${campaign.id}/edit`}>
+                    <Button variant="outline" size="sm">
+                      Modifier
+                    </Button>
+                  </Link>
+                  <Link href={`/campaigns/${campaign.id}/participants`}>
+                    <Button size="sm">
+                      Voir les candidatures
+                    </Button>
+                  </Link>
+                </div>
+              )}
+
+              {/* CTA pour visiteurs non connectés */}
+              {!isAuthenticated && (
+                <div className="flex gap-2">
+                  <Link href="/register">
+                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                      S'inscrire pour candidater
+                    </Button>
+                  </Link>
+                </div>
               )}
             </div>
           </div>
         </div>
+
+        {/* Alerte deadline pour étudiants */}
+        {user?.role === 'student' && campaign.status === 'active' && daysUntilDeadline <= 7 && daysUntilDeadline > 0 && (
+          <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+            <div className="flex items-center">
+              <AlertTriangle className="w-5 h-5 text-orange-600 mr-2" />
+              <p className="text-orange-800">
+                <strong>Attention :</strong> Plus que {daysUntilDeadline} jour{daysUntilDeadline > 1 ? 's' : ''} pour candidater !
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Main content */}
         <div className="grid grid-cols-3 gap-8">
@@ -151,6 +242,30 @@ export default function CampaignDetailsPage() {
                 </ul>
               </div>
             )}
+
+            {/* Informations limitées pour visiteurs non connectés */}
+            {!isAuthenticated && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                  Vous voulez en savoir plus ?
+                </h3>
+                <p className="text-blue-700 mb-4">
+                  Créez votre compte pour accéder aux détails complets de cette campagne et candidater.
+                </p>
+                <div className="flex gap-3">
+                  <Link href="/register">
+                    <Button className="bg-blue-600 hover:bg-blue-700">
+                      Créer un compte
+                    </Button>
+                  </Link>
+                  <Link href="/login">
+                    <Button variant="outline">
+                      Se connecter
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -168,11 +283,36 @@ export default function CampaignDetailsPage() {
                 <p className="text-gray-900">{campaign.location}</p>
               </div>
 
+              {/* Deadlines */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Deadline entreprises</h3>
+                <p className="text-gray-900 text-sm">{new Date(campaign.companyDeadline).toLocaleDateString('fr-FR')}</p>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Deadline étudiants</h3>
+                <p className="text-gray-900 text-sm">{new Date(campaign.studentDeadline).toLocaleDateString('fr-FR')}</p>
+                {user?.role === 'student' && daysUntilDeadline > 0 && (
+                  <p className="text-xs text-orange-600 mt-1">
+                    Plus que {daysUntilDeadline} jour{daysUntilDeadline > 1 ? 's' : ''}
+                  </p>
+                )}
+              </div>
+
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Participants</h3>
-                <p className="text-gray-900">{campaign.participants} / {campaign.maxParticipants || '∞'}</p>
-                <Progress value={(campaign.participants / (campaign.maxParticipants || 100)) * 100} className="h-1 mt-2" />
+                <p className="text-gray-900">{campaign.participants} candidatures</p>
+                {campaign.maxParticipants && (
+                  <Progress value={(campaign.participants / campaign.maxParticipants) * 100} className="h-1 mt-2" />
+                )}
               </div>
+
+              {campaign.createdAt && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Créée le</h3>
+                  <p className="text-gray-900 text-sm">{new Date(campaign.createdAt).toLocaleDateString('fr-FR')}</p>
+                </div>
+              )}
             </div>
 
             {/* Tags */}
@@ -185,14 +325,31 @@ export default function CampaignDetailsPage() {
               </div>
             </div>
 
-            {/* Contact */}
-            <div className="border rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-900 mb-3">Contact</h3>
-              <Button variant="outline" className="w-full text-sm">
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Contacter
-              </Button>
-            </div>
+            {/* Contact - seulement pour utilisateurs connectés */}
+            {isAuthenticated && (
+              <div className="border rounded-lg p-4">
+                <h3 className="text-sm font-medium text-gray-900 mb-3">Contact</h3>
+                <Button variant="outline" className="w-full text-sm">
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Contacter
+                </Button>
+              </div>
+            )}
+
+            {/* CTA pour visiteurs */}
+            {!isAuthenticated && (
+              <div className="border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
+                <h3 className="text-sm font-medium text-blue-900 mb-3">Rejoignez StepIn</h3>
+                <p className="text-xs text-blue-700 mb-3">
+                  Accédez à toutes les fonctionnalités et candidatez aux meilleures opportunités.
+                </p>
+                <Link href="/register">
+                  <Button className="w-full text-sm bg-blue-600 hover:bg-blue-700">
+                    Créer un compte gratuit
+                  </Button>
+                </Link>
+              </div>
+            )}
 
           </div>
         </div>

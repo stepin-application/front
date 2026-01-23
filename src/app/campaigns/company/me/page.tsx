@@ -1,415 +1,157 @@
 "use client"
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { Plus, Search, Calendar, MapPin, Users, Filter, ArrowUpDown, Briefcase, GraduationCap, Building } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Briefcase, Edit, Trash2, Eye, Plus } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { companyCampaignsData, CompanyCampaign } from '@/data/companyCampaignsData';
-import { schoolCampaignsData, SchoolCampaign } from '@/data/schoolCampaignsData';
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import StatusBadge from '@/components/campaigns/StatusBadge';
+import { toast } from 'sonner';
 
-// TODO: À remplacer par l'ID de l'entreprise connectée
-const COMPANY_ID = 'company_1';
+interface JobOpening {
+  id: string;
+  title: string;
+  description: string;
+  contractType: string;
+  duration: string;
+  location: string;
+  maxParticipants: number;
+  createdAt: string;
+  campaign?: {
+    id: string;
+    title: string;
+    status: 'OPEN' | 'LOCKED';
+    deadline: string;
+  };
+}
 
-export default function CompanyCampaignsPage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<CompanyCampaign['status'] | 'all'>('all');
-  const [sortBy, setSortBy] = useState<'date' | 'participants'>('date');
-  const [activeTab, setActiveTab] = useState<'my-offers' | 'invitations'>('my-offers');
+export default function CompanyJobsPage() {
+  const router = useRouter();
+  const [jobs, setJobs] = useState<JobOpening[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Filtrer les campagnes de l'entreprise connectée
-  const companyCampaigns = companyCampaignsData.filter(campaign => 
-    campaign.company.id === COMPANY_ID
-  );
+  useEffect(() => {
+    fetchJobs();
+  }, []);
 
-  // TODO: Remplacer cette logique simulée par une vraie API
-  // Pour l'instant, on simule que l'entreprise est invitée à certaines campagnes d'école
-  const invitedCampaigns = schoolCampaignsData.slice(0, 2).map(campaign => ({
-    ...campaign,
-    // Simuler un statut d'invitation
-    invitationStatus: Math.random() > 0.5 ? 'pending' : 'accepted' as 'pending' | 'accepted' | 'declined'
-  }));
-
-  // Filtrer par recherche et status pour les offres de l'entreprise
-  const filteredCampaigns = companyCampaigns.filter(campaign => {
-    const matchesSearch = campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      campaign.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      campaign.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-
-    const matchesStatus = statusFilter === 'all' || campaign.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
-
-  // Filtrer par recherche pour les invitations (pas de filtre de statut ici)
-  const filteredInvitations = invitedCampaigns.filter(invitation => 
-    invitation.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    invitation.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    invitation.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
-  // Trier les campagnes
-  const sortedCampaigns = [...filteredCampaigns].sort((a, b) => {
-    if (sortBy === 'date') {
-      return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
-    } else {
-      return (b.currentParticipants / b.maxParticipants) - (a.currentParticipants / a.maxParticipants);
+  const fetchJobs = async () => {
+    try {
+      const response = await fetch('/api/companies/me/job-openings', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (!response.ok) throw new Error('Failed to fetch jobs');
+      const data = await response.json();
+      setJobs(data);
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
     }
-  });
-
-  // Trier les invitations par date
-  const sortedInvitations = [...filteredInvitations].sort((a, b) => 
-    new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
-  );
-
-  // Statistiques pour mes offres
-  const myOffersStats = {
-    total: companyCampaigns.length,
-    active: companyCampaigns.filter(c => c.status === 'active').length,
-    draft: companyCampaigns.filter(c => c.status === 'draft').length,
-    ended: companyCampaigns.filter(c => c.status === 'ended').length
   };
 
-  // Statistiques pour les invitations
-  const invitationsStats = {
-    total: invitedCampaigns.length,
-    pending: invitedCampaigns.filter(c => c.invitationStatus === 'pending').length,
-    accepted: invitedCampaigns.filter(c => c.invitationStatus === 'accepted').length,
+  const handleDelete = async (jobId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette offre ?')) return;
+    
+    try {
+      const response = await fetch(`/api/job-openings/${jobId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message);
+      }
+      
+      toast.success('Offre supprimée');
+      fetchJobs();
+    } catch (error: any) {
+      if (error.message.includes('locked')) {
+        toast.error('Campaign is locked');
+      } else if (error.message.includes('deadline')) {
+        toast.error('Deadline passed');
+      } else {
+        toast.error('Erreur lors de la suppression');
+      }
+    }
   };
 
-  const getOfferStatusBadge = (status: CompanyCampaign['status']) => {
-    const styles = {
-      active: 'bg-emerald-50 text-emerald-700 border-emerald-200 ring-1 ring-emerald-200',
-      draft: 'bg-slate-50 text-slate-700 border-slate-200 ring-1 ring-slate-200',
-      ended: 'bg-blue-50 text-blue-700 border-blue-200 ring-1 ring-blue-200',
-      cancelled: 'bg-rose-50 text-rose-700 border-rose-200 ring-1 ring-rose-200'
-    }[status];
-
-    const text = {
-      active: 'Active',
-      draft: 'Brouillon',
-      ended: 'Terminée',
-      cancelled: 'Annulée'
-    }[status];
-
+  if (loading) {
     return (
-      <Badge className={`${styles} text-xs font-medium`}>
-        {text}
-      </Badge>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
     );
-  };
-
-  const getInvitationStatusBadge = (status: 'pending' | 'accepted' | 'declined') => {
-    const styles = {
-      pending: 'bg-amber-50 text-amber-700 border-amber-200 ring-1 ring-amber-200',
-      accepted: 'bg-emerald-50 text-emerald-700 border-emerald-200 ring-1 ring-emerald-200',
-      declined: 'bg-slate-50 text-slate-700 border-slate-200 ring-1 ring-slate-200'
-    }[status];
-
-    const text = {
-      pending: 'En attente',
-      accepted: 'Acceptée',
-      declined: 'Refusée'
-    }[status];
-
-    return (
-      <Badge className={`${styles} text-xs font-medium`}>
-        {text}
-      </Badge>
-    );
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12">
-      <div className="max-w-5xl mx-auto px-4">
-        {/* En-tête */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <div>
-              <h1 className="text-2xl font-semibold text-slate-900 mb-1">
-                Espace recrutement
-              </h1>
-              <p className="text-slate-500">
-                Gérez vos offres et participez aux événements des écoles
-              </p>
-            </div>
-            <Link href="/campaigns/company/new">
-              <Button size="default" className="shadow-sm w-full sm:w-auto">
-                <Plus className="w-4 h-4 mr-2" />
-                Nouvelle offre
-              </Button>
-            </Link>
+    <div className="min-h-screen bg-gray-50 py-12">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Mes Offres</h1>
+            <p className="text-gray-600">Gérez vos offres de recrutement</p>
           </div>
-
-          <Tabs defaultValue="my-offers" onValueChange={(value) => setActiveTab(value as 'my-offers' | 'invitations')}>
-            <TabsList className="mb-6 grid grid-cols-2">
-              <TabsTrigger value="my-offers" className="flex items-center gap-2">
-                <Briefcase className="w-4 h-4" />
-                <span>Mes offres</span>
-                <Badge variant="secondary" className="ml-1">{myOffersStats.total}</Badge>
-              </TabsTrigger>
-              <TabsTrigger value="invitations" className="flex items-center gap-2">
-                <GraduationCap className="w-4 h-4" />
-                <span>Invitations</span>
-                <Badge variant="secondary" className="ml-1">{invitationsStats.total}</Badge>
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="my-offers">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="p-4 bg-white rounded-lg border border-slate-200">
-                  <p className="text-sm font-medium text-slate-500">Total</p>
-                  <p className="text-2xl font-bold text-slate-900">{myOffersStats.total}</p>
-                </div>
-                <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-                  <p className="text-sm font-medium text-emerald-600">Actives</p>
-                  <p className="text-2xl font-bold text-emerald-700">{myOffersStats.active}</p>
-                </div>
-                <div className="p-4 bg-white rounded-lg border border-slate-200">
-                  <p className="text-sm font-medium text-slate-500">Brouillons</p>
-                  <p className="text-2xl font-bold text-slate-900">{myOffersStats.draft}</p>
-                </div>
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-sm font-medium text-blue-600">Terminées</p>
-                  <p className="text-2xl font-bold text-blue-700">{myOffersStats.ended}</p>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="invitations">
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="p-4 bg-white rounded-lg border border-slate-200">
-                  <p className="text-sm font-medium text-slate-500">Total</p>
-                  <p className="text-2xl font-bold text-slate-900">{invitationsStats.total}</p>
-                </div>
-                <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
-                  <p className="text-sm font-medium text-amber-600">En attente</p>
-                  <p className="text-2xl font-bold text-amber-700">{invitationsStats.pending}</p>
-                </div>
-                <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-                  <p className="text-sm font-medium text-emerald-600">Acceptées</p>
-                  <p className="text-2xl font-bold text-emerald-700">{invitationsStats.accepted}</p>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
+          <Button onClick={() => router.push('/campaigns/company/new')}>
+            <Plus className="w-4 h-4 mr-2" />
+            Nouvelle offre
+          </Button>
         </div>
 
-        {/* Filtres et recherche */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
-              <Input
-                placeholder={activeTab === 'my-offers' ? "Rechercher une offre..." : "Rechercher une invitation..."}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            {activeTab === 'my-offers' && (
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1 sm:flex-none"
-                  onClick={() => setStatusFilter(current => 
-                    current === 'all' ? 'active' : 
-                    current === 'active' ? 'draft' : 
-                    current === 'draft' ? 'ended' : 'all'
-                  )}
-                >
-                  <Filter className="w-4 h-4 mr-2" />
-                  {statusFilter === 'all' ? 'Tous' : 
-                   statusFilter === 'active' ? 'Actives' :
-                   statusFilter === 'draft' ? 'Brouillons' : 'Terminées'}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 sm:flex-none"
-                  onClick={() => setSortBy(current => current === 'date' ? 'participants' : 'date')}
-                >
-                  <ArrowUpDown className="w-4 h-4 mr-2" />
-                  {sortBy === 'date' ? 'Date' : 'Candidats'}
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Contenu principal basé sur l'onglet actif */}
-        {activeTab === 'my-offers' ? (
-          <div className="grid gap-4">
-            {sortedCampaigns.map(campaign => (
-              <Link 
-                key={campaign.id}
-                href={`/campaigns/company/me/${campaign.id}`}
-                className="group block bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-all duration-200 hover:border-slate-300"
-              >
-                <div className="p-4">
-                  <div className="flex flex-col md:flex-row gap-4 mb-4">
-                    <div className="flex-1">
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        {getOfferStatusBadge(campaign.status)}
-                        <Badge variant="outline" className="text-xs">
-                          {campaign.tags[0]}
-                        </Badge>
-                        {campaign.tags.length > 1 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{campaign.tags.length - 1}
-                          </Badge>
-                        )}
-                      </div>
-                      <h2 className="text-xl font-semibold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
-                        {campaign.title}
-                      </h2>
-                      <p className="text-slate-500 text-sm line-clamp-2">
-                        {campaign.description}
-                      </p>
-                    </div>
-                    <img
-                      src={campaign.image}
-                      alt={campaign.title}
-                      className="w-full md:w-32 h-24 md:h-24 object-cover rounded-lg"
-                    />
-                  </div>
-
-                  <div className="flex flex-wrap gap-4 text-sm text-slate-500 mb-4">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4 text-slate-400" />
-                      {new Date(campaign.startDate).toLocaleDateString('fr-FR')}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <MapPin className="w-4 h-4 text-slate-400" />
-                      {campaign.location}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Briefcase className="w-4 h-4 text-slate-400" />
-                      {campaign.maxParticipants} {campaign.maxParticipants > 1 ? 'postes' : 'poste'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between text-sm mb-1">
-                      <span className="text-slate-700">Candidats</span>
-                      <span className="text-blue-600">{campaign.currentParticipants} reçu(s)</span>
-                    </div>
-                    <Progress 
-                      value={0} 
-                      className="h-1.5"
-                    />
-                  </div>
-                </div>
-              </Link>
-            ))}
-
-            {sortedCampaigns.length === 0 && (
-              <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
-                <Briefcase className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                <h3 className="text-slate-600 font-medium mb-1">Aucune offre trouvée</h3>
-                <p className="text-slate-500 mb-4">Vous n'avez pas encore créé d'offres de recrutement</p>
-                <Link href="/campaigns/company/new">
-                  <Button size="sm">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Créer une offre
-                  </Button>
-                </Link>
-              </div>
-            )}
+        {jobs.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border p-12 text-center">
+            <Briefcase className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune offre</h3>
+            <p className="text-gray-600 mb-4">Commencez par créer votre première offre</p>
+            <Button onClick={() => router.push('/campaigns/company/new')}>
+              Créer une offre
+            </Button>
           </div>
         ) : (
-          <div className="grid gap-4">
-            {sortedInvitations.map(invitation => (
-              <div
-                key={invitation.id}
-                className="block bg-white rounded-xl shadow-sm border border-slate-200"
-              >
-                <div className="p-4">
-                  <div className="flex flex-col md:flex-row gap-4 mb-4">
+          <div className="space-y-4">
+            {jobs.map((job) => {
+              const canEdit = !job.campaign || (job.campaign.status === 'OPEN' && new Date(job.campaign.deadline) > new Date());
+              
+              return (
+                <div key={job.id} className="bg-white rounded-xl shadow-sm border p-6">
+                  <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        {getInvitationStatusBadge(invitation.invitationStatus)}
-                        <Badge variant="outline" className="bg-blue-50 text-xs">
-                          École
-                        </Badge>
-                      </div>
-                      <h2 className="text-xl font-semibold text-slate-900 mb-2 flex items-center gap-2">
-                        {invitation.title}
-                      </h2>
                       <div className="flex items-center gap-2 mb-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={invitation.school.logo} alt={invitation.school.name} />
-                          <AvatarFallback>{invitation.school.name[0]}</AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm font-medium text-slate-600">{invitation.school.name}</span>
+                        <h3 className="text-lg font-semibold text-gray-900">{job.title}</h3>
+                        <Badge variant="outline">{job.contractType}</Badge>
+                        <Badge variant="outline">{job.duration}</Badge>
                       </div>
-                      <p className="text-slate-500 text-sm line-clamp-2">
-                        {invitation.description}
-                      </p>
-                    </div>
-                    <img
-                      src={invitation.image}
-                      alt={invitation.title}
-                      className="w-full md:w-32 h-24 md:h-24 object-cover rounded-lg"
-                    />
-                  </div>
-
-                  <div className="flex flex-wrap gap-4 text-sm text-slate-500 mb-4">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4 text-slate-400" />
-                      {new Date(invitation.startDate).toLocaleDateString('fr-FR')}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <MapPin className="w-4 h-4 text-slate-400" />
-                      {invitation.location}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Building className="w-4 h-4 text-slate-400" />
-                      {invitation.currentParticipants}/{invitation.maxParticipants} entreprises
+                      {job.campaign && (
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm text-gray-600">Campagne:</span>
+                          <span className="text-sm font-medium">{job.campaign.title}</span>
+                          <StatusBadge status={job.campaign.status} />
+                        </div>
+                      )}
+                      <p className="text-sm text-gray-600 line-clamp-2">{job.description}</p>
                     </div>
                   </div>
-
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    {invitation.invitationStatus === 'pending' ? (
-                      <>
-                        <Button className="flex-1 sm:flex-none">
-                          Accepter
-                        </Button>
-                        <Button variant="outline" className="flex-1 sm:flex-none">
-                          Refuser
-                        </Button>
-                      </>
-                    ) : invitation.invitationStatus === 'accepted' ? (
-                      <Link href={`/campaigns/${invitation.id}`} className="w-full sm:w-auto">
-                        <Button className="w-full">
-                          Voir la campagne
-                        </Button>
-                      </Link>
-                    ) : null}
-
-                    <Link href={`/campaigns/${invitation.id}`} className="w-full sm:w-auto">
-                      <Button variant="outline" className="w-full">
-                        Détails
-                      </Button>
-                    </Link>
+                  
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => router.push(`/campaigns/${job.id}`)}>
+                      <Eye className="w-4 h-4 mr-1" />
+                      Voir
+                    </Button>
+                    <Button variant="outline" size="sm" disabled={!canEdit} onClick={() => router.push(`/campaigns/company/${job.id}/edit`)}>
+                      <Edit className="w-4 h-4 mr-1" />
+                      Éditer
+                    </Button>
+                    <Button variant="outline" size="sm" disabled={!canEdit} onClick={() => handleDelete(job.id)}>
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Supprimer
+                    </Button>
                   </div>
                 </div>
-              </div>
-            ))}
-
-            {sortedInvitations.length === 0 && (
-              <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
-                <GraduationCap className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                <h3 className="text-slate-600 font-medium mb-1">Aucune invitation</h3>
-                <p className="text-slate-500 mb-4">Vous n'avez pas encore reçu d'invitations de la part d'écoles</p>
-              </div>
-            )}
+              );
+            })}
           </div>
         )}
       </div>
     </div>
   );
-} 
+}

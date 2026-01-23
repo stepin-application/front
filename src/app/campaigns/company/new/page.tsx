@@ -1,17 +1,28 @@
 "use client"
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Calendar, MapPin, Users, Building, Upload, Plus, Trash2, Info } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { toast } from 'sonner';
 
 export default function NewCompanyCampaignPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const invitationId = searchParams.get('invitationId');
+  const campaignId = searchParams.get('campaignId');
+  const isInvitationResponse = !!invitationId;
+
+  const [campaignInfo, setCampaignInfo] = useState<{ schoolName: string; campaignName: string } | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    contractType: '',
+    duration: '',
     startDate: '',
     endDate: '',
     location: '',
@@ -22,9 +33,30 @@ export default function NewCompanyCampaignPage() {
     tags: ['']
   });
 
+  useEffect(() => {
+    if (isInvitationResponse && campaignId) {
+      fetchCampaignInfo();
+    }
+  }, [isInvitationResponse, campaignId]);
+
+  const fetchCampaignInfo = async () => {
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}`);
+      const data = await response.json();
+      setCampaignInfo({
+        schoolName: data.school.name,
+        campaignName: data.title
+      });
+    } catch (error) {
+      console.error('Error fetching campaign info:', error);
+    }
+  };
+
   const tooltips = {
     title: "Le titre doit être clair et attractif, il sera la première chose que les candidats verront",
     description: "Décrivez en détail le poste, les missions, l'environnement de travail et les objectifs",
+    contractType: "Type de contrat proposé (Stage, CDI, CDD, Alternance)",
+    duration: "Durée du contrat (ex: 6 mois, 12 mois, Indéterminée)",
     startDate: "Date à laquelle le poste sera disponible",
     endDate: "Date limite de candidature",
     location: "Lieu de travail principal (présentiel, hybride, télétravail)",
@@ -37,8 +69,53 @@ export default function NewCompanyCampaignPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implémenter la logique d'envoi
-    console.log(formData);
+    
+    try {
+      let response;
+      
+      if (isInvitationResponse && campaignId) {
+        // Créer un job-opening pour une campagne école
+        response = await fetch(`/api/campaigns/${campaignId}/companies/job-openings`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify(formData)
+        });
+      } else {
+        // Ajouter un poste à une campagne ouverte
+        response = await fetch('/api/campaigns', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify(formData)
+        });
+      }
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to create job opening');
+      }
+
+      toast.success(isInvitationResponse ? 'Poste ajouté avec succès !' : 'Poste ajouté à la campagne avec succès !');
+      router.push(isInvitationResponse ? '/campaigns/company/invitations' : '/campaigns/company/me');
+    } catch (error: any) {
+      console.error('Error submitting form:', error);
+      
+      // Messages d'erreur métier
+      if (error.message.includes('locked')) {
+        toast.error('Campaign is locked');
+      } else if (error.message.includes('deadline')) {
+        toast.error('Deadline passed');
+      } else if (error.message.includes('not accepted')) {
+        toast.error('Company not accepted for this campaign');
+      } else {
+        toast.error('Erreur lors de la création');
+      }
+    }
   };
 
   const handleArrayChange = (
@@ -74,12 +151,23 @@ export default function NewCompanyCampaignPage() {
           Retour aux campagnes
         </Link>
 
+        {isInvitationResponse && campaignInfo && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <p className="text-sm text-blue-800">
+              ℹ️ Vous répondez à l'invitation de <strong>{campaignInfo.schoolName}</strong> pour <strong>{campaignInfo.campaignName}</strong>
+            </p>
+          </div>
+        )}
+
         <div className="mb-8">
           <h1 className="text-2xl font-medium text-gray-900 mb-2">
-            Créer une nouvelle campagne de recrutement
+            {isInvitationResponse ? 'Ajouter vos postes' : 'Ajouter vos postes à la campagne'}
           </h1>
           <p className="text-gray-500">
-            Publiez votre offre et trouvez les meilleurs talents pour votre entreprise
+            {isInvitationResponse 
+              ? 'Proposez les postes que vous souhaitez offrir pour cet événement'
+              : 'Proposez vos offres d\'emploi et de stage pour cette campagne de recrutement'
+            }
           </p>
         </div>
 
@@ -92,7 +180,7 @@ export default function NewCompanyCampaignPage() {
             
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                Titre de la campagne
+                Titre du poste
                 <div className="group relative">
                   <Info className="h-4 w-4 text-gray-400 cursor-help" />
                   <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
@@ -127,6 +215,51 @@ export default function NewCompanyCampaignPage() {
                 rows={6}
                 required
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="contractType" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                  Type de contrat
+                  <div className="group relative">
+                    <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                    <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                      {tooltips.contractType}
+                    </div>
+                  </div>
+                </label>
+                <select
+                  id="contractType"
+                  value={formData.contractType}
+                  onChange={(e) => setFormData(prev => ({ ...prev, contractType: e.target.value }))}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                  required
+                >
+                  <option value="">Sélectionner</option>
+                  <option value="stage">Stage</option>
+                  <option value="cdi">CDI</option>
+                  <option value="cdd">CDD</option>
+                  <option value="alternance">Alternance</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                  Durée
+                  <div className="group relative">
+                    <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                    <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                      {tooltips.duration}
+                    </div>
+                  </div>
+                </label>
+                <Input
+                  id="duration"
+                  value={formData.duration}
+                  onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
+                  placeholder="Ex: 6 mois, 12 mois, Indéterminée"
+                  required
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -214,7 +347,7 @@ export default function NewCompanyCampaignPage() {
           <div className="space-y-4 border-2 border-dashed bg-white border-gray-300 rounded-lg p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
-                Image de la campagne
+                Image du poste
                 <div className="group relative">
                   <Info className="h-4 w-4 text-gray-400 cursor-help" />
                   <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
@@ -364,7 +497,7 @@ export default function NewCompanyCampaignPage() {
           {/* Submit */}
           <div className="pt-6 border-t">
             <Button type="submit" className="w-full">
-              Publier la campagne
+              {isInvitationResponse ? 'Ajouter le poste' : 'Ajouter le poste à la campagne'}
             </Button>
           </div>
         </form>

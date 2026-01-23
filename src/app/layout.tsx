@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import { Toaster } from "sonner";
 import Background from "@/components/ui/Background";
 import DevNav from "@/components/DevNav";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 const geistSans = Geist({
   subsets: ["latin"],
@@ -32,14 +33,16 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="min-h-screen relative">
-        <div className="absolute inset-0 -z-10" />
-        <Header />
-        <main className="pt-10 relative">
-          <Background />
-          <Toaster richColors />
-          {children}
-        </main>
-        <DevNav/>
+        <AuthProvider>
+          <div className="absolute inset-0 -z-10" />
+          <Header />
+          <main className="pt-10 relative">
+            <Background />
+            <Toaster richColors />
+            {children}
+          </main>
+          <DevNav/>
+        </AuthProvider>
       </body>
     </html>
   );

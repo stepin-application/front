@@ -1,21 +1,67 @@
 "use client"
 
 import React, { useState } from 'react';
-import { Sparkles, Menu, X, Home, Megaphone, Building, LogIn, UserPlus } from "lucide-react";
+import { Sparkles, Menu, X, Home, Megaphone, Building, LogIn, UserPlus, Briefcase, Mail, GraduationCap } from "lucide-react";
 import Link from 'next/link';
 import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, isAuthenticated, logout } = useAuth();
 
-  const navItems = [
-    { 
-      name: "Campagnes", 
-      href: "/campaigns", 
-      icon: Megaphone,
-      description: "Découvrez nos campagnes"
+  const getNavItems = () => {
+    const baseItems = [
+      { 
+        name: "Campagnes", 
+        href: "/campaigns", 
+        icon: Megaphone,
+        description: "Découvrez nos campagnes"
+      }
+    ];
+
+    if (user?.role === 'student') {
+      baseItems.push(
+        {
+          name: "Mes candidatures",
+          href: "/students/applications",
+          icon: Briefcase,
+          description: "Suivez vos candidatures"
+        }
+      );
     }
-  ];
+
+    if (user?.role === 'school') {
+      baseItems.push({
+        name: "Mes campagnes",
+        href: "/campaigns/school/me",
+        icon: GraduationCap,
+        description: "Gérez vos événements"
+      });
+    }
+
+    if (user?.role === 'company') {
+      baseItems.push(
+        {
+          name: "Mes invitations",
+          href: "/campaigns/company/invitations",
+          icon: Mail,
+          description: "Invitations reçues"
+        },
+        {
+          name: "Mes offres",
+          href: "/campaigns/company/me",
+          icon: Briefcase,
+          description: "Vos offres de recrutement"
+        }
+      );
+    }
+
+    return baseItems;
+  };
+
+  const navItems = getNavItems();
 
   return (
     <header className="w-full py-3 bg-white/80 backdrop-blur-md border-b border-purple-100 fixed top-0 z-50 transition-all duration-300">
@@ -47,20 +93,36 @@ export default function Header() {
             <div className="flex items-center">
               <div className="h-6 w-px bg-gray-400 mx-4"></div>
               <div className="flex items-center space-x-3">
-                <Link
-                  href="/login"
-                  className="px-4 py-1.5 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors duration-200 flex items-center space-x-1"
-                >
-                  <LogIn className="w-4 h-4" />
-                  <span>Connexion</span>
-                </Link>
-                <Link
-                  href="/register"
-                  className="px-4 py-1.5 text-sm text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 shadow-md shadow-purple-500/20 hover:shadow-purple-500/30 flex items-center space-x-1"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  <span>S'inscrire</span>
-                </Link>
+                {isAuthenticated ? (
+                  <>
+                    <span className="text-sm text-gray-700 font-medium">{user?.name}</span>
+                    <Button
+                      onClick={logout}
+                      variant="outline"
+                      size="sm"
+                      className="text-sm"
+                    >
+                      Déconnexion
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/login"
+                      className="px-4 py-1.5 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors duration-200 flex items-center space-x-1"
+                    >
+                      <LogIn className="w-4 h-4" />
+                      <span>Connexion</span>
+                    </Link>
+                    <Link
+                      href="/register"
+                      className="px-4 py-1.5 text-sm text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 shadow-md shadow-purple-500/20 hover:shadow-purple-500/30 flex items-center space-x-1"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span>S'inscrire</span>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>

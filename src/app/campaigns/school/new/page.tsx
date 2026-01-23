@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, Calendar, MapPin, Users, Building, Upload, Plus, Trash2, Info, Search, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
@@ -10,11 +11,15 @@ import { Badge } from "@/components/ui/badge";
 import { companiesData, Company } from '@/data/companiesData';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { toast } from 'sonner';
 
 export default function NewSchoolCampaignPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    companyDeadline: '', // Deadline pour les entreprises de répondre
+    studentDeadline: '', // Deadline pour les étudiants de candidater
     startDate: '',
     endDate: '',
     location: '',
@@ -23,7 +28,8 @@ export default function NewSchoolCampaignPage() {
     requirements: [''],
     benefits: [''],
     tags: [''],
-    invitedCompanies: [] as Company[]
+    invitedCompanies: [] as Company[],
+    invitedCompanyEmails: [''] // Liste d'emails d'entreprises
   });
 
   const [searchCompany, setSearchCompany] = useState('');
@@ -32,6 +38,8 @@ export default function NewSchoolCampaignPage() {
   const tooltips = {
     title: "Le titre doit être clair et attractif pour les entreprises que vous souhaitez inviter",
     description: "Décrivez en détail l'événement, les objectifs et les opportunités pour les entreprises",
+    companyDeadline: "Date limite pour que les entreprises acceptent l'invitation et ajoutent leurs postes",
+    studentDeadline: "Date limite pour que les étudiants puissent candidater aux offres",
     startDate: "Date de début de l'événement ou de la période de recrutement",
     endDate: "Date de fin de l'événement ou de la période de recrutement",
     location: "Lieu de l'événement ou zone géographique concernée",
@@ -40,17 +48,61 @@ export default function NewSchoolCampaignPage() {
     requirements: "Critères que les entreprises doivent remplir pour participer",
     benefits: "Avantages pour les entreprises participantes",
     tags: "Mots-clés permettant de catégoriser votre campagne",
-    companies: "Sélectionnez les entreprises à inviter à votre campagne"
+    companies: "Sélectionnez les entreprises à inviter à votre campagne",
+    emails: "Ajoutez des emails d'entreprises qui recevront automatiquement une notification de création de campagne"
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implémenter la logique d'envoi avec l'API
-    console.log(formData);
+    
+    try {
+      // Convertir deadline en UTC
+      const deadlineUTC = new Date(formData.deadline).toISOString();
+      
+      // Créer la campagne
+      const response = await fetch('/api/campaigns', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          ...formData,
+          deadline: deadlineUTC,
+          status: 'OPEN'
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to create campaign');
+      
+      const campaign = await response.json();
+      
+      // Envoyer les invitations
+      if (selectedCompanies.length > 0) {
+        const invitationPromises = selectedCompanies.map(company =>
+          fetch(`/api/campaigns/${campaign.id}/invitations`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ companyId: company.id })
+          })
+        );
+        
+        await Promise.all(invitationPromises);
+      }
+      
+      toast.success(`Campagne créée ! ${selectedCompanies.length} invitation(s) envoyée(s)`);
+      router.push('/campaigns/school/me');
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Erreur lors de la création de la campagne');
+    }
   };
 
   const handleArrayChange = (
-    field: 'requirements' | 'benefits' | 'tags',
+    field: 'requirements' | 'benefits' | 'tags' | 'invitedCompanyEmails',
     index: number,
     value: string
   ) => {
@@ -60,14 +112,14 @@ export default function NewSchoolCampaignPage() {
     }));
   };
 
-  const addArrayItem = (field: 'requirements' | 'benefits' | 'tags') => {
+  const addArrayItem = (field: 'requirements' | 'benefits' | 'tags' | 'invitedCompanyEmails') => {
     setFormData(prev => ({
       ...prev,
       [field]: [...prev[field], '']
     }));
   };
 
-  const removeArrayItem = (field: 'requirements' | 'benefits' | 'tags', index: number) => {
+  const removeArrayItem = (field: 'requirements' | 'benefits' | 'tags' | 'invitedCompanyEmails', index: number) => {
     setFormData(prev => ({
       ...prev,
       [field]: prev[field].filter((_, i) => i !== index)
@@ -147,6 +199,44 @@ export default function NewSchoolCampaignPage() {
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="Décrivez l'événement, son déroulement et les opportunités..."
                 rows={6}
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="companyDeadline" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                Deadline entreprises
+                <div className="group relative">
+                  <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                  <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                    {tooltips.companyDeadline}
+                  </div>
+                </div>
+              </label>
+              <Input
+                id="companyDeadline"
+                type="datetime-local"
+                value={formData.companyDeadline}
+                onChange={(e) => setFormData(prev => ({ ...prev, companyDeadline: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="studentDeadline" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                Deadline étudiants
+                <div className="group relative">
+                  <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                  <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                    {tooltips.studentDeadline}
+                  </div>
+                </div>
+              </label>
+              <Input
+                id="studentDeadline"
+                type="datetime-local"
+                value={formData.studentDeadline}
+                onChange={(e) => setFormData(prev => ({ ...prev, studentDeadline: e.target.value }))}
                 required
               />
             </div>
@@ -429,6 +519,51 @@ export default function NewSchoolCampaignPage() {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Emails d'entreprises */}
+          <div className="space-y-4 border-2 border-dashed border-gray-300 rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
+                Emails d'entreprises à notifier
+                <div className="group relative">
+                  <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                  <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                    {tooltips.emails}
+                  </div>
+                </div>
+              </h2>
+            </div>
+            <p className="text-sm text-gray-600">
+              Ces entreprises recevront automatiquement un email de notification lors de la création de la campagne.
+            </p>
+            {formData.invitedCompanyEmails.map((email, index) => (
+              <div key={index} className="flex gap-2">
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => handleArrayChange('invitedCompanyEmails', index, e.target.value)}
+                  placeholder="Ex: recrutement@entreprise.com"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => removeArrayItem('invitedCompanyEmails', index)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => addArrayItem('invitedCompanyEmails')}
+              className="w-full"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Ajouter un email
+            </Button>
           </div>
 
           {/* Tags */}
