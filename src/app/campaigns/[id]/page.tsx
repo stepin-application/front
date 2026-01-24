@@ -67,7 +67,10 @@ export default function CampaignDetailsPage() {
     
     // Vérifier si la deadline étudiante est passée
     const now = new Date();
-    const deadline = new Date(campaign.studentDeadline);
+    const campaignAny = campaign as any;
+    const studentDeadline = campaignAny.studentDeadline || campaignAny.companyDeadline || campaignAny.endDate;
+    if (!studentDeadline) return false;
+    const deadline = new Date(studentDeadline);
     return now <= deadline;
   };
 
@@ -80,7 +83,10 @@ export default function CampaignDetailsPage() {
   // Calculer les jours restants pour candidater
   const getDaysUntilDeadline = () => {
     const now = new Date();
-    const deadline = new Date(campaign.studentDeadline);
+    const campaignAny = campaign as any;
+    const deadlineDate = campaignAny.studentDeadline || campaignAny.companyDeadline || campaignAny.endDate;
+    if (!deadlineDate) return 0;
+    const deadline = new Date(deadlineDate);
     const diffTime = deadline.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
@@ -286,12 +292,28 @@ export default function CampaignDetailsPage() {
               {/* Deadlines */}
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Deadline entreprises</h3>
-                <p className="text-gray-900 text-sm">{new Date(campaign.companyDeadline).toLocaleDateString('fr-FR')}</p>
+                <p className="text-gray-900 text-sm">
+                  {((campaign as any).companyDeadline || (campaign as any).endDate) ? 
+                    new Date((campaign as any).companyDeadline || (campaign as any).endDate).toLocaleDateString('fr-FR') : 
+                    'Non définie'}
+                </p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Deadline étudiants</h3>
+                <p className="text-gray-900 text-sm">
+                  {((campaign as any).studentDeadline ? 
+                    new Date((campaign as any).studentDeadline).toLocaleDateString('fr-FR') : 
+                    'Non définie')}
+                </p>
               </div>
 
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Deadline étudiants</h3>
-                <p className="text-gray-900 text-sm">{new Date(campaign.studentDeadline).toLocaleDateString('fr-FR')}</p>
+                <p className="text-gray-900 text-sm">
+                  {((campaign as any).studentDeadline ? 
+                    new Date((campaign as any).studentDeadline).toLocaleDateString('fr-FR') : 
+                    'Non définie')}
+                </p>
                 {user?.role === 'student' && daysUntilDeadline > 0 && (
                   <p className="text-xs text-orange-600 mt-1">
                     Plus que {daysUntilDeadline} jour{daysUntilDeadline > 1 ? 's' : ''}
@@ -307,10 +329,10 @@ export default function CampaignDetailsPage() {
                 )}
               </div>
 
-              {campaign.createdAt && (
+              {((campaign as any).createdAt) && (
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Créée le</h3>
-                  <p className="text-gray-900 text-sm">{new Date(campaign.createdAt).toLocaleDateString('fr-FR')}</p>
+                  <p className="text-gray-900 text-sm">{new Date((campaign as any).createdAt).toLocaleDateString('fr-FR')}</p>
                 </div>
               )}
             </div>

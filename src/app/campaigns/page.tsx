@@ -1,24 +1,38 @@
-"use client"
+"use client";
 
-import { useState, useMemo, useEffect } from 'react';
-import { campaignsData } from '@/data/campaignsData';
-import SearchAndFilters from '@/components/campaigns/SearchAndFilters';
-import CampaignCard from '@/components/campaigns/CampaignCard';
-import { motion } from 'framer-motion';
-import { ArrowRight, TrendingUp, Users, Calendar, Sparkles, ChevronDown, Plus, Filter } from 'lucide-react';
-import { useInView } from 'react-intersection-observer';
-import Background from '@/components/ui/Background';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
-import Link from 'next/link';
+import { useState, useMemo, useEffect } from "react";
+import { useCampaigns } from "@/hooks/useCampaigns";
+import SearchAndFilters from "@/components/campaigns/SearchAndFilters";
+import CampaignCard from "@/components/campaigns/CampaignCard";
+import { motion } from "framer-motion";
+import {
+  ArrowRight,
+  TrendingUp,
+  Users,
+  Calendar,
+  Sparkles,
+  ChevronDown,
+  Plus,
+  Filter,
+} from "lucide-react";
+import { useInView } from "react-intersection-observer";
+import Background from "@/components/ui/Background";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import Link from "next/link";
 
 // Types
-type FilterType = 'all' | 'company' | 'school';
-type FilterStatus = 'all' | 'active' | 'closed' | 'upcoming';
-type FilterTarget = 'all' | 'students' | 'companies' | 'both';
+type FilterType = "all" | "company" | "school";
+type FilterStatus = "all" | "active" | "closed" | "upcoming";
+type FilterTarget = "all" | "students" | "companies" | "both";
 
 // Composants
-const StatCard = ({ title, value, icon, color }: {
+const StatCard = ({
+  title,
+  value,
+  icon,
+  color,
+}: {
   title: string;
   value: number;
   icon: React.ReactNode;
@@ -30,10 +44,52 @@ const StatCard = ({ title, value, icon, color }: {
         <p className="text-sm text-gray-500 font-medium">{title}</p>
         <p className={`text-2xl font-bold text-${color}-600 mt-1`}>{value}</p>
       </div>
-      <div className={`p-3 bg-${color}-50 rounded-full`}>
-        {icon}
-      </div>
+      <div className={`p-3 bg-${color}-50 rounded-full`}>{icon}</div>
     </div>
+  </div>
+);
+
+const LoadingState = () => (
+  <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-100">
+    <div className="animate-spin w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+    <p className="text-gray-600">Chargement des campagnes...</p>
+  </div>
+);
+
+const ErrorState = ({
+  error,
+  onRetry,
+}: {
+  error: string;
+  onRetry: () => void;
+}) => (
+  <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-100">
+    <div className="text-red-500 mb-4">
+      <svg
+        className="w-8 h-8 mx-auto"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+        />
+      </svg>
+    </div>
+    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+      Erreur de chargement
+    </h3>
+    <p className="text-gray-600 mb-4">{error}</p>
+    <button
+      onClick={onRetry}
+      className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200"
+    >
+      Réessayer
+      <ArrowRight className="w-4 h-4 ml-2" />
+    </button>
   </div>
 );
 
@@ -58,75 +114,107 @@ const NoResults = ({ onReset }: { onReset: () => void }) => (
 // Page principale
 export default function CampaignsPage() {
   const { user, isAuthenticated } = useAuth();
-  
+  const {
+    campaigns: campaignsList,
+    loading,
+    error,
+    loadCampaigns,
+    loadActiveCampaigns,
+  } = useCampaigns();
+
   // État
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<{
     type: FilterType;
     status: FilterStatus;
     target: FilterTarget;
   }>({
-    type: 'all',
-    status: 'all',
-    target: 'all'
+    type: "all",
+    status: "all",
+    target: "all",
   });
 
   const [visibleItems, setVisibleItems] = useState(8);
   const { ref, inView } = useInView({
     threshold: 0,
-    triggerOnce: false
+    triggerOnce: false,
   });
+
+  // Charger les campagnes au montage
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadCampaigns();
+    } else {
+      // Pour les visiteurs, charger seulement les campagnes actives
+      loadActiveCampaigns();
+    }
+  }, [isAuthenticated, loadCampaigns, loadActiveCampaigns]);
 
   // Calculs dérivés
   const filteredCampaigns = useMemo(() => {
-    let campaigns = campaignsData;
+    let campaigns = [...campaignsList];
 
     // Pour les visiteurs non connectés, limiter l'affichage
     if (!isAuthenticated) {
       campaigns = campaigns.slice(0, 6); // Limiter à 6 campagnes
     }
 
-    return campaigns.filter(campaign => {
-      const matchesSearch = searchQuery === '' || 
+    return campaigns.filter((campaign) => {
+      const matchesSearch =
+        searchQuery === "" ||
         campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        campaign.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        campaign.createdBy.name.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesType = filters.type === 'all' || campaign.type === filters.type;
-      const matchesStatus = filters.status === 'all' || campaign.status === filters.status;
-      const matchesTarget = filters.target === 'all' || campaign.target === filters.target;
-      
+        campaign.description
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        campaign.createdBy?.name
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase());
+
+      const matchesType =
+        filters.type === "all" || campaign.type === filters.type;
+      const matchesStatus =
+        filters.status === "all" || campaign.status === filters.status;
+      const matchesTarget =
+        filters.target === "all" || campaign.target === filters.target;
+
       // Pour les étudiants, ne montrer que les campagnes ouvertes aux étudiants
-      if (user?.role === 'student') {
-        return matchesSearch && matchesType && matchesStatus && 
-               (campaign.target === 'students' || campaign.target === 'both') &&
-               campaign.status === 'active';
+      if (user?.role === "student") {
+        return (
+          matchesSearch &&
+          matchesType &&
+          matchesStatus &&
+          (campaign.target === "students" || campaign.target === "both") &&
+          campaign.status === "active"
+        );
       }
-      
+
       return matchesSearch && matchesType && matchesStatus && matchesTarget;
     });
-  }, [searchQuery, filters, isAuthenticated, user]);
+  }, [searchQuery, filters, isAuthenticated, user, campaignsList]);
 
   const paginatedCampaigns = useMemo(() => {
     return filteredCampaigns.slice(0, visibleItems);
   }, [filteredCampaigns, visibleItems]);
 
-  const stats = useMemo(() => ({
-    active: campaignsData.filter(c => c.status === 'active').length,
-    upcoming: campaignsData.filter(c => c.status === 'upcoming').length,
-    total: campaignsData.length
-  }), []);
+  const stats = useMemo(
+    () => ({
+      active: campaignsList.filter((c) => c.status === "active").length,
+      upcoming: campaignsList.filter((c) => c.status === "upcoming").length,
+      total: campaignsList.length,
+    }),
+    [campaignsList],
+  );
 
   // Gestionnaires d'événements
   const handleReset = () => {
-    setSearchQuery('');
-    setFilters({ type: 'all', status: 'all', target: 'all' });
+    setSearchQuery("");
+    setFilters({ type: "all", status: "all", target: "all" });
     setVisibleItems(8);
   };
 
   useEffect(() => {
     if (inView && paginatedCampaigns.length < filteredCampaigns.length) {
-      setVisibleItems(prev => prev + 8);
+      setVisibleItems((prev) => prev + 8);
     }
   }, [inView, paginatedCampaigns.length, filteredCampaigns.length]);
 
@@ -134,11 +222,11 @@ export default function CampaignsPage() {
   const getPageTitle = () => {
     if (!isAuthenticated) return "Découvrez nos opportunités";
     switch (user?.role) {
-      case 'student':
+      case "student":
         return "Opportunités pour vous";
-      case 'school':
+      case "school":
         return "Gérer vos campagnes";
-      case 'company':
+      case "company":
         return "Participez aux campagnes";
       default:
         return "Explorez les Campagnes";
@@ -146,13 +234,14 @@ export default function CampaignsPage() {
   };
 
   const getPageDescription = () => {
-    if (!isAuthenticated) return "Créez un compte pour accéder à toutes les fonctionnalités et candidater aux offres";
+    if (!isAuthenticated)
+      return "Créez un compte pour accéder à toutes les fonctionnalités et candidater aux offres";
     switch (user?.role) {
-      case 'student':
+      case "student":
         return "Trouvez les meilleures opportunités de stage et d'emploi adaptées à votre profil";
-      case 'school':
+      case "school":
         return "Créez et gérez vos campagnes de recrutement pour vos étudiants";
-      case 'company':
+      case "company":
         return "Découvrez les campagnes auxquelles vous pouvez participer et gérez vos invitations";
       default:
         return "Trouvez les meilleures opportunités professionnelles et académiques";
@@ -161,7 +250,7 @@ export default function CampaignsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12 relative overflow-hidden">
-      <Background/>
+      <Background />
 
       <div className="container mx-auto px-4 relative">
         {/* En-tête de la page */}
@@ -172,17 +261,19 @@ export default function CampaignsPage() {
             className="inline-flex items-center px-4 py-2 bg-purple-100 rounded-full text-purple-700 text-sm font-medium mb-4"
           >
             <Sparkles className="w-4 h-4 mr-2" />
-            {!isAuthenticated ? "Inscription gratuite" : "Découvrez nos dernières opportunités"}
+            {!isAuthenticated
+              ? "Inscription gratuite"
+              : "Découvrez nos dernières opportunités"}
           </motion.div>
           <div className="flex items-center justify-center gap-4 mb-4">
-            <motion.h1 
+            <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-4xl font-bold text-gray-900"
             >
               {getPageTitle()}
             </motion.h1>
-            {user?.role === 'school' && (
+            {user?.role === "school" && (
               <Link href="/campaigns/school/new">
                 <Button className="bg-gradient-to-r from-purple-600 to-indigo-600">
                   <Plus className="w-4 h-4 mr-2" />
@@ -190,7 +281,7 @@ export default function CampaignsPage() {
                 </Button>
               </Link>
             )}
-            {user?.role === 'company' && (
+            {user?.role === "company" && (
               <Link href="/campaigns/company/invitations">
                 <Button className="bg-gradient-to-r from-purple-600 to-indigo-600">
                   <Plus className="w-4 h-4 mr-2" />
@@ -199,7 +290,7 @@ export default function CampaignsPage() {
               </Link>
             )}
           </div>
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
@@ -207,7 +298,7 @@ export default function CampaignsPage() {
           >
             {getPageDescription()}
           </motion.p>
-          
+
           {/* CTA pour visiteurs non connectés */}
           {!isAuthenticated && (
             <motion.div
@@ -241,25 +332,25 @@ export default function CampaignsPage() {
 
         {/* Statistiques - seulement pour les utilisateurs connectés */}
         {isAuthenticated && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-16"
           >
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-              <StatCard 
+              <StatCard
                 title="Campagnes Actives"
                 value={stats.active}
                 icon={<TrendingUp className="w-6 h-6 text-green-600" />}
                 color="green"
               />
-              <StatCard 
+              <StatCard
                 title="À Venir"
                 value={stats.upcoming}
                 icon={<Calendar className="w-6 h-6 text-blue-600" />}
                 color="blue"
               />
-              <StatCard 
+              <StatCard
                 title="Total des Opportunités"
                 value={stats.total}
                 icon={<Users className="w-6 h-6 text-purple-600" />}
@@ -291,7 +382,7 @@ export default function CampaignsPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className={`w-full ${isAuthenticated ? 'lg:w-3/4' : ''}`}
+            className={`w-full ${isAuthenticated ? "lg:w-3/4" : ""}`}
           >
             {/* Filtres simplifiés pour visiteurs */}
             {!isAuthenticated && (
@@ -306,8 +397,26 @@ export default function CampaignsPage() {
               </div>
             )}
 
-            <div className={isAuthenticated ? "h-[calc(100vh-200px)] overflow-y-auto" : ""}>
-              {filteredCampaigns.length > 0 ? (
+            <div
+              className={
+                isAuthenticated ? "h-[calc(100vh-200px)] overflow-y-auto" : ""
+              }
+            >
+              {loading ? (
+                <LoadingState />
+              ) : error ? (
+                <ErrorState
+                  error={error}
+                  onRetry={() => {
+                    // Recharger les données
+                    if (isAuthenticated) {
+                      loadCampaigns();
+                    } else {
+                      loadActiveCampaigns();
+                    }
+                  }}
+                />
+              ) : filteredCampaigns.length > 0 ? (
                 <>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {paginatedCampaigns.map((campaign, index) => (
@@ -317,15 +426,15 @@ export default function CampaignsPage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 * (index % 8) }}
                       >
-                        <CampaignCard 
-                          campaign={campaign} 
+                        <CampaignCard
+                          campaign={campaign}
                           isAuthenticated={isAuthenticated}
-                          userRole={user?.role}
+                          userRole={user?.role || undefined}
                         />
                       </motion.div>
                     ))}
                   </div>
-                  
+
                   {/* Message pour visiteurs non connectés */}
                   {!isAuthenticated && (
                     <motion.div
@@ -338,7 +447,8 @@ export default function CampaignsPage() {
                         Vous voulez voir plus d'opportunités ?
                       </h3>
                       <p className="text-blue-700 mb-4">
-                        Créez votre compte pour accéder à toutes les campagnes, utiliser les filtres avancés et candidater directement.
+                        Créez votre compte pour accéder à toutes les campagnes,
+                        utiliser les filtres avancés et candidater directement.
                       </p>
                       <Link
                         href="/register"
@@ -348,15 +458,16 @@ export default function CampaignsPage() {
                       </Link>
                     </motion.div>
                   )}
-                  
+
                   {/* Pagination pour utilisateurs connectés */}
-                  {isAuthenticated && paginatedCampaigns.length < filteredCampaigns.length && (
-                    <div ref={ref} className="h-10 mt-8 flex justify-center">
-                      <div className="animate-bounce">
-                        <ChevronDown className="w-6 h-6 text-gray-400" />
+                  {isAuthenticated &&
+                    paginatedCampaigns.length < filteredCampaigns.length && (
+                      <div ref={ref} className="h-10 mt-8 flex justify-center">
+                        <div className="animate-bounce">
+                          <ChevronDown className="w-6 h-6 text-gray-400" />
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </>
               ) : (
                 <NoResults onReset={handleReset} />

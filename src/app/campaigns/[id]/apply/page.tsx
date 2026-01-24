@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Campaign, JobOpening } from '@/types/campaign'
-import { api } from '@/lib/api'
+import { jobOpeningApi, campaigns, api } from '@/lib/api'
 import { useRouter, useParams } from 'next/navigation'
 import { 
   Upload, 
@@ -53,19 +53,19 @@ export default function ApplyToCampaign() {
 
     const fetchCampaignData = async () => {
       try {
-        const [campaignRes, jobOpeningsRes, applicationStatusRes] = await Promise.all([
-          api.get(`/campaigns/${campaignId}`),
-          api.get(`/campaigns/${campaignId}/job-openings`),
-          api.get(`/campaigns/${campaignId}/application-status`)
+        const [campaignRes, jobOpeningsRes] = await Promise.all([
+          campaigns.getById(campaignId),
+          jobOpeningApi.getAll({ campaignId })
         ])
 
-        setCampaign(campaignRes.data)
-        setJobOpenings(jobOpeningsRes.data)
-        setHasApplied(applicationStatusRes.data.hasApplied)
+        setCampaign(campaignRes)
+        setJobOpenings(jobOpeningsRes)
+        // TODO: Implémenter la vérification du statut de candidature quand l'API sera disponible
+        setHasApplied(false)
 
         // Pré-sélectionner le premier job opening s'il n'y en a qu'un
-        if (jobOpeningsRes.data.length === 1) {
-          setForm(prev => ({ ...prev, jobOpeningId: jobOpeningsRes.data[0].id }))
+        if (jobOpeningsRes.length === 1) {
+          setForm(prev => ({ ...prev, jobOpeningId: jobOpeningsRes[0].id }))
         }
       } catch (error) {
         console.error('Erreur lors du chargement de la campagne:', error)
@@ -161,10 +161,11 @@ export default function ApplyToCampaign() {
         formData.append(`additionalDocument_${index}`, file)
       })
 
-      await api.post('/students/applications', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+      await jobOpeningApi.apply(form.jobOpeningId, {
+        candidateInfo: {
+          coverLetter: form.coverLetter
+        },
+        cv: form.cvFile || undefined
       })
 
       // Rediriger vers la page de confirmation

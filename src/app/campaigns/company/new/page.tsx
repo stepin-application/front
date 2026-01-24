@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react';
+import { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Calendar, MapPin, Users, Building, Upload, Plus, Trash2, Info } from 'lucide-react';
 import Link from 'next/link';
@@ -10,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 
-export default function NewCompanyCampaignPage() {
+function NewCompanyCampaignPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const invitationId = searchParams.get('invitationId');
@@ -503,5 +504,13 @@ export default function NewCompanyCampaignPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function NewCompanyCampaignPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <NewCompanyCampaignPageContent />
+    </Suspense>
   );
 }

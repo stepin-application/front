@@ -1,149 +1,203 @@
-"use client"
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Calendar, MapPin, Users, Building, Upload, Plus, Trash2, Info, Search, CheckCircle } from 'lucide-react';
-import Link from 'next/link';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCampaigns } from "@/hooks/useCampaigns";
+import {
+  ArrowLeft,
+  Calendar,
+  MapPin,
+  Users,
+  Building,
+  Upload,
+  Plus,
+  Trash2,
+  Info,
+  Search,
+  CheckCircle,
+} from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { companiesData, Company } from '@/data/companiesData';
+import { companiesData, Company } from "@/data/companiesData";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 export default function NewSchoolCampaignPage() {
   const router = useRouter();
+  const { createCampaign, inviteCompany, loading, error } = useCampaigns();
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    companyDeadline: '', // Deadline pour les entreprises de répondre
-    studentDeadline: '', // Deadline pour les étudiants de candidater
-    startDate: '',
-    endDate: '',
-    location: '',
-    maxParticipants: '',
+    title: "",
+    description: "",
+    companyDeadline: "", // Deadline pour les entreprises de répondre
+    studentDeadline: "", // Deadline pour les étudiants de candidater
+    startDate: "",
+    endDate: "",
+    location: "",
+    maxParticipants: "",
     image: null as File | null,
-    requirements: [''],
-    benefits: [''],
-    tags: [''],
+    requirements: [""],
+    benefits: [""],
+    tags: [""],
     invitedCompanies: [] as Company[],
-    invitedCompanyEmails: [''] // Liste d'emails d'entreprises
+    invitedCompanyEmails: [""], // Liste d'emails d'entreprises
   });
 
-  const [searchCompany, setSearchCompany] = useState('');
+  const [searchCompany, setSearchCompany] = useState("");
   const [selectedCompanies, setSelectedCompanies] = useState<Company[]>([]);
 
   const tooltips = {
-    title: "Le titre doit être clair et attractif pour les entreprises que vous souhaitez inviter",
-    description: "Décrivez en détail l'événement, les objectifs et les opportunités pour les entreprises",
-    companyDeadline: "Date limite pour que les entreprises acceptent l'invitation et ajoutent leurs postes",
-    studentDeadline: "Date limite pour que les étudiants puissent candidater aux offres",
+    title:
+      "Le titre doit être clair et attractif pour les entreprises que vous souhaitez inviter",
+    description:
+      "Décrivez en détail l'événement, les objectifs et les opportunités pour les entreprises",
+    companyDeadline:
+      "Date limite pour que les entreprises acceptent l'invitation et ajoutent leurs postes",
+    studentDeadline:
+      "Date limite pour que les étudiants puissent candidater aux offres",
     startDate: "Date de début de l'événement ou de la période de recrutement",
     endDate: "Date de fin de l'événement ou de la période de recrutement",
     location: "Lieu de l'événement ou zone géographique concernée",
     maxParticipants: "Nombre maximum d'entreprises pouvant participer",
-    image: "Une image représentative de votre école ou de l'événement (format recommandé: 16:9)",
-    requirements: "Critères que les entreprises doivent remplir pour participer",
+    image:
+      "Une image représentative de votre école ou de l'événement (format recommandé: 16:9)",
+    requirements:
+      "Critères que les entreprises doivent remplir pour participer",
     benefits: "Avantages pour les entreprises participantes",
     tags: "Mots-clés permettant de catégoriser votre campagne",
     companies: "Sélectionnez les entreprises à inviter à votre campagne",
-    emails: "Ajoutez des emails d'entreprises qui recevront automatiquement une notification de création de campagne"
+    emails:
+      "Ajoutez des emails d'entreprises qui recevront automatiquement une notification de création de campagne",
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    try {
-      // Convertir deadline en UTC
-      const deadlineUTC = new Date(formData.deadline).toISOString();
-      
-      // Créer la campagne
-      const response = await fetch('/api/campaigns', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          ...formData,
-          deadline: deadlineUTC,
-          status: 'OPEN'
-        })
-      });
 
-      if (!response.ok) throw new Error('Failed to create campaign');
-      
-      const campaign = await response.json();
-      
-      // Envoyer les invitations
-      if (selectedCompanies.length > 0) {
-        const invitationPromises = selectedCompanies.map(company =>
-          fetch(`/api/campaigns/${campaign.id}/invitations`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({ companyId: company.id })
-          })
-        );
-        
-        await Promise.all(invitationPromises);
-      }
-      
-      toast.success(`Campagne créée ! ${selectedCompanies.length} invitation(s) envoyée(s)`);
-      router.push('/campaigns/school/me');
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('Erreur lors de la création de la campagne');
+    // Validation frontend
+    if (!formData.title || formData.title.trim().length < 3) {
+      toast.error("Le titre doit contenir au moins 3 caractères");
+      return;
     }
+
+    if (!formData.description || formData.description.trim().length < 10) {
+      toast.error("La description doit contenir au moins 10 caractères");
+      return;
+    }
+
+    if (!formData.companyDeadline) {
+      toast.error("La deadline entreprises est requise");
+      return;
+    }
+
+    if (!formData.studentDeadline) {
+      toast.error("La deadline étudiants est requise");
+      return;
+    }
+
+    const companyDeadlineDate = new Date(formData.companyDeadline);
+    const studentDeadlineDate = new Date(formData.studentDeadline);
+
+    if (companyDeadlineDate <= new Date()) {
+      toast.error("La deadline entreprises doit être dans le futur");
+      return;
+    }
+
+    if (studentDeadlineDate <= companyDeadlineDate) {
+      toast.error(
+        "La deadline étudiants doit être après la deadline entreprises",
+      );
+      return;
+    }
+
+    // Créer la campagne avec le hook
+    const campaign = await createCampaign({
+      schoolId: "00000000-0000-0000-0000-000000000001", // TODO: Récupérer l'ID de l'école connectée
+      name: formData.title,
+      description: formData.description,
+      deadline: new Date(formData.companyDeadline).toISOString(),
+    });
+
+    if (!campaign) {
+      return; // L'erreur est déjà gérée par le hook
+    }
+
+    // Envoyer les invitations
+    let successCount = 0;
+    if (selectedCompanies.length > 0) {
+      for (const company of selectedCompanies) {
+        const success = await inviteCompany(campaign.id, company.id);
+        if (success) successCount++;
+      }
+
+      if (successCount > 0) {
+        toast.success(`${successCount} invitation(s) envoyée(s)`);
+      }
+    }
+
+    router.push("/campaigns/school/me");
   };
 
   const handleArrayChange = (
-    field: 'requirements' | 'benefits' | 'tags' | 'invitedCompanyEmails',
+    field: "requirements" | "benefits" | "tags" | "invitedCompanyEmails",
     index: number,
-    value: string
+    value: string,
   ) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: prev[field].map((item, i) => (i === index ? value : item))
+      [field]: prev[field].map((item, i) => (i === index ? value : item)),
     }));
   };
 
-  const addArrayItem = (field: 'requirements' | 'benefits' | 'tags' | 'invitedCompanyEmails') => {
-    setFormData(prev => ({
+  const addArrayItem = (
+    field: "requirements" | "benefits" | "tags" | "invitedCompanyEmails",
+  ) => {
+    setFormData((prev) => ({
       ...prev,
-      [field]: [...prev[field], '']
+      [field]: [...prev[field], ""],
     }));
   };
 
-  const removeArrayItem = (field: 'requirements' | 'benefits' | 'tags' | 'invitedCompanyEmails', index: number) => {
-    setFormData(prev => ({
+  const removeArrayItem = (
+    field: "requirements" | "benefits" | "tags" | "invitedCompanyEmails",
+    index: number,
+  ) => {
+    setFormData((prev) => ({
       ...prev,
-      [field]: prev[field].filter((_, i) => i !== index)
+      [field]: prev[field].filter((_, i) => i !== index),
     }));
   };
 
-  const filteredCompanies = companiesData.filter(company =>
-    company.name.toLowerCase().includes(searchCompany.toLowerCase()) ||
-    company.industry.toLowerCase().includes(searchCompany.toLowerCase()) ||
-    company.location.toLowerCase().includes(searchCompany.toLowerCase())
+  const filteredCompanies = companiesData.filter(
+    (company) =>
+      company.name.toLowerCase().includes(searchCompany.toLowerCase()) ||
+      company.industry.toLowerCase().includes(searchCompany.toLowerCase()) ||
+      company.location.toLowerCase().includes(searchCompany.toLowerCase()),
   );
 
   const toggleCompanySelection = (company: Company) => {
-    if (selectedCompanies.find(c => c.id === company.id)) {
-      setSelectedCompanies(prev => prev.filter(c => c.id !== company.id));
+    if (selectedCompanies.find((c) => c.id === company.id)) {
+      setSelectedCompanies((prev) => prev.filter((c) => c.id !== company.id));
     } else {
-      setSelectedCompanies(prev => [...prev, company]);
+      setSelectedCompanies((prev) => [...prev, company]);
     }
   };
 
   return (
     <div className="min-h-screen bg-white py-8">
       <div className="max-w-3xl mx-auto px-4">
-        <Link href="/campaigns" className="inline-flex items-center text-sm text-gray-500 hover:text-gray-900 mb-6">
+        <Link
+          href="/campaigns"
+          className="inline-flex items-center text-sm text-gray-500 hover:text-gray-900 mb-6"
+        >
           <ArrowLeft className="w-4 h-4 mr-1" />
           Retour aux campagnes
         </Link>
@@ -161,11 +215,16 @@ export default function NewSchoolCampaignPage() {
           {/* Informations principales */}
           <div className="space-y-4 border-2 border-dashed border-gray-300 rounded-lg p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-medium text-gray-900">Informations principales</h2>
+              <h2 className="text-lg font-medium text-gray-900">
+                Informations principales
+              </h2>
             </div>
-            
+
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+              <label
+                htmlFor="title"
+                className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2"
+              >
                 Titre de la campagne
                 <div className="group relative">
                   <Info className="h-4 w-4 text-gray-400 cursor-help" />
@@ -177,14 +236,19 @@ export default function NewSchoolCampaignPage() {
               <Input
                 id="title"
                 value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, title: e.target.value }))
+                }
                 placeholder="Ex: Forum entreprises 2024"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+              <label
+                htmlFor="description"
+                className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2"
+              >
                 Description
                 <div className="group relative">
                   <Info className="h-4 w-4 text-gray-400 cursor-help" />
@@ -196,7 +260,12 @@ export default function NewSchoolCampaignPage() {
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
                 placeholder="Décrivez l'événement, son déroulement et les opportunités..."
                 rows={6}
                 required
@@ -204,7 +273,10 @@ export default function NewSchoolCampaignPage() {
             </div>
 
             <div>
-              <label htmlFor="companyDeadline" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+              <label
+                htmlFor="companyDeadline"
+                className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2"
+              >
                 Deadline entreprises
                 <div className="group relative">
                   <Info className="h-4 w-4 text-gray-400 cursor-help" />
@@ -217,13 +289,21 @@ export default function NewSchoolCampaignPage() {
                 id="companyDeadline"
                 type="datetime-local"
                 value={formData.companyDeadline}
-                onChange={(e) => setFormData(prev => ({ ...prev, companyDeadline: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    companyDeadline: e.target.value,
+                  }))
+                }
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="studentDeadline" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+              <label
+                htmlFor="studentDeadline"
+                className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2"
+              >
                 Deadline étudiants
                 <div className="group relative">
                   <Info className="h-4 w-4 text-gray-400 cursor-help" />
@@ -236,14 +316,22 @@ export default function NewSchoolCampaignPage() {
                 id="studentDeadline"
                 type="datetime-local"
                 value={formData.studentDeadline}
-                onChange={(e) => setFormData(prev => ({ ...prev, studentDeadline: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    studentDeadline: e.target.value,
+                  }))
+                }
                 required
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                <label
+                  htmlFor="startDate"
+                  className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2"
+                >
                   Date de début
                   <div className="group relative">
                     <Info className="h-4 w-4 text-gray-400 cursor-help" />
@@ -256,12 +344,20 @@ export default function NewSchoolCampaignPage() {
                   id="startDate"
                   type="date"
                   value={formData.startDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      startDate: e.target.value,
+                    }))
+                  }
                   required
                 />
               </div>
               <div>
-                <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                <label
+                  htmlFor="endDate"
+                  className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2"
+                >
                   Date de fin
                   <div className="group relative">
                     <Info className="h-4 w-4 text-gray-400 cursor-help" />
@@ -274,7 +370,12 @@ export default function NewSchoolCampaignPage() {
                   id="endDate"
                   type="date"
                   value={formData.endDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      endDate: e.target.value,
+                    }))
+                  }
                   required
                 />
               </div>
@@ -282,7 +383,10 @@ export default function NewSchoolCampaignPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                <label
+                  htmlFor="location"
+                  className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2"
+                >
                   Localisation
                   <div className="group relative">
                     <Info className="h-4 w-4 text-gray-400 cursor-help" />
@@ -294,13 +398,21 @@ export default function NewSchoolCampaignPage() {
                 <Input
                   id="location"
                   value={formData.location}
-                  onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      location: e.target.value,
+                    }))
+                  }
                   placeholder="Ex: Campus de Paris"
                   required
                 />
               </div>
               <div>
-                <label htmlFor="maxParticipants" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                <label
+                  htmlFor="maxParticipants"
+                  className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2"
+                >
                   Nombre d'entreprises max
                   <div className="group relative">
                     <Info className="h-4 w-4 text-gray-400 cursor-help" />
@@ -314,7 +426,12 @@ export default function NewSchoolCampaignPage() {
                   type="number"
                   min="1"
                   value={formData.maxParticipants}
-                  onChange={(e) => setFormData(prev => ({ ...prev, maxParticipants: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      maxParticipants: e.target.value,
+                    }))
+                  }
                   placeholder="Ex: 20"
                   required
                 />
@@ -365,14 +482,16 @@ export default function NewSchoolCampaignPage() {
               <div key={index} className="flex gap-2">
                 <Input
                   value={req}
-                  onChange={(e) => handleArrayChange('requirements', index, e.target.value)}
+                  onChange={(e) =>
+                    handleArrayChange("requirements", index, e.target.value)
+                  }
                   placeholder="Ex: Entreprise de plus de 50 employés"
                 />
                 <Button
                   type="button"
                   variant="outline"
                   size="icon"
-                  onClick={() => removeArrayItem('requirements', index)}
+                  onClick={() => removeArrayItem("requirements", index)}
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -381,7 +500,7 @@ export default function NewSchoolCampaignPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => addArrayItem('requirements')}
+              onClick={() => addArrayItem("requirements")}
               className="w-full"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -406,14 +525,16 @@ export default function NewSchoolCampaignPage() {
               <div key={index} className="flex gap-2">
                 <Input
                   value={benefit}
-                  onChange={(e) => handleArrayChange('benefits', index, e.target.value)}
+                  onChange={(e) =>
+                    handleArrayChange("benefits", index, e.target.value)
+                  }
                   placeholder="Ex: Stand personnalisé"
                 />
                 <Button
                   type="button"
                   variant="outline"
                   size="icon"
-                  onClick={() => removeArrayItem('benefits', index)}
+                  onClick={() => removeArrayItem("benefits", index)}
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -422,7 +543,7 @@ export default function NewSchoolCampaignPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => addArrayItem('benefits')}
+              onClick={() => addArrayItem("benefits")}
               className="w-full"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -466,13 +587,13 @@ export default function NewSchoolCampaignPage() {
                     />
                   </div>
                   <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto">
-                    {filteredCompanies.map(company => (
+                    {filteredCompanies.map((company) => (
                       <div
                         key={company.id}
                         className={`flex items-center justify-between p-3 rounded-lg border ${
-                          selectedCompanies.find(c => c.id === company.id)
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-blue-500'
+                          selectedCompanies.find((c) => c.id === company.id)
+                            ? "border-blue-500 bg-blue-50"
+                            : "border-gray-200 hover:border-blue-500"
                         } cursor-pointer transition-colors duration-200`}
                         onClick={() => toggleCompanySelection(company)}
                       >
@@ -482,11 +603,15 @@ export default function NewSchoolCampaignPage() {
                             <AvatarFallback>{company.name[0]}</AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-medium text-gray-900">{company.name}</p>
-                            <p className="text-sm text-gray-500">{company.industry} • {company.location}</p>
+                            <p className="font-medium text-gray-900">
+                              {company.name}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {company.industry} • {company.location}
+                            </p>
                           </div>
                         </div>
-                        {selectedCompanies.find(c => c.id === company.id) && (
+                        {selectedCompanies.find((c) => c.id === company.id) && (
                           <CheckCircle className="h-5 w-5 text-blue-500" />
                         )}
                       </div>
@@ -498,10 +623,16 @@ export default function NewSchoolCampaignPage() {
 
             {selectedCompanies.length > 0 && (
               <div className="mt-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Entreprises sélectionnées</h3>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">
+                  Entreprises sélectionnées
+                </h3>
                 <div className="flex flex-wrap gap-2">
-                  {selectedCompanies.map(company => (
-                    <Badge key={company.id} variant="outline" className="flex items-center gap-1">
+                  {selectedCompanies.map((company) => (
+                    <Badge
+                      key={company.id}
+                      variant="outline"
+                      className="flex items-center gap-1"
+                    >
                       <Avatar className="h-4 w-4">
                         <AvatarImage src={company.logo} />
                         <AvatarFallback>{company.name[0]}</AvatarFallback>
@@ -535,21 +666,28 @@ export default function NewSchoolCampaignPage() {
               </h2>
             </div>
             <p className="text-sm text-gray-600">
-              Ces entreprises recevront automatiquement un email de notification lors de la création de la campagne.
+              Ces entreprises recevront automatiquement un email de notification
+              lors de la création de la campagne.
             </p>
             {formData.invitedCompanyEmails.map((email, index) => (
               <div key={index} className="flex gap-2">
                 <Input
                   type="email"
                   value={email}
-                  onChange={(e) => handleArrayChange('invitedCompanyEmails', index, e.target.value)}
+                  onChange={(e) =>
+                    handleArrayChange(
+                      "invitedCompanyEmails",
+                      index,
+                      e.target.value,
+                    )
+                  }
                   placeholder="Ex: recrutement@entreprise.com"
                 />
                 <Button
                   type="button"
                   variant="outline"
                   size="icon"
-                  onClick={() => removeArrayItem('invitedCompanyEmails', index)}
+                  onClick={() => removeArrayItem("invitedCompanyEmails", index)}
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -558,7 +696,7 @@ export default function NewSchoolCampaignPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => addArrayItem('invitedCompanyEmails')}
+              onClick={() => addArrayItem("invitedCompanyEmails")}
               className="w-full"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -580,29 +718,37 @@ export default function NewSchoolCampaignPage() {
               </h2>
             </div>
             <div className="flex flex-wrap gap-2 mb-4">
-              {formData.tags.filter(tag => tag).map((tag, index) => (
-                <Badge key={index} variant="outline">
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => removeArrayItem('tags', index)}
-                    className="ml-2 hover:text-red-500"
-                  >
-                    ×
-                  </button>
-                </Badge>
-              ))}
+              {formData.tags
+                .filter((tag) => tag)
+                .map((tag, index) => (
+                  <Badge key={index} variant="outline">
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeArrayItem("tags", index)}
+                      className="ml-2 hover:text-red-500"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                ))}
             </div>
             <div className="flex gap-2">
               <Input
                 placeholder="Ex: Tech"
                 value={formData.tags[formData.tags.length - 1]}
-                onChange={(e) => handleArrayChange('tags', formData.tags.length - 1, e.target.value)}
+                onChange={(e) =>
+                  handleArrayChange(
+                    "tags",
+                    formData.tags.length - 1,
+                    e.target.value,
+                  )
+                }
               />
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => addArrayItem('tags')}
+                onClick={() => addArrayItem("tags")}
               >
                 <Plus className="w-4 h-4" />
               </Button>
@@ -611,12 +757,15 @@ export default function NewSchoolCampaignPage() {
 
           {/* Submit */}
           <div className="pt-6 border-t">
-            <Button type="submit" className="w-full">
-              Publier la campagne
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Création en cours..." : "Publier la campagne"}
             </Button>
+            {error && (
+              <p className="mt-2 text-sm text-red-600 text-center">{error}</p>
+            )}
           </div>
         </form>
       </div>
     </div>
   );
-} 
+}

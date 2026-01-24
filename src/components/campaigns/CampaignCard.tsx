@@ -5,14 +5,16 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Campaign } from '@/data/campaignsData';
+import { Campaign } from '@/types/campaign';
 import Link from 'next/link';
 
 interface CampaignCardProps {
   campaign: Campaign;
+  isAuthenticated?: boolean;
+  userRole?: 'school' | 'company' | 'student';
 }
 
-export default function CampaignCard({ campaign }: CampaignCardProps) {
+export default function CampaignCard({ campaign, isAuthenticated = false, userRole }: CampaignCardProps) {
   const getStatusColor = (status: Campaign['status']) => {
     switch (status) {
       case 'active':
