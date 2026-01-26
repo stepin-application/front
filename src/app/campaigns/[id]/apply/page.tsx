@@ -161,12 +161,22 @@ export default function ApplyToCampaign() {
         formData.append(`additionalDocument_${index}`, file)
       })
 
-      await jobOpeningApi.apply(form.jobOpeningId, {
-        candidateInfo: {
-          coverLetter: form.coverLetter
-        },
-        cv: form.cvFile || undefined
-      })
+      const selectedJob = jobOpenings.find(job => job.id === form.jobOpeningId)
+      if (!selectedJob) {
+        throw new Error('Poste sélectionné introuvable')
+      }
+
+      await jobOpeningApi.apply(
+        campaignId,
+        selectedJob.company.id,
+        form.jobOpeningId,
+        {
+          candidateInfo: {
+            coverLetter: form.coverLetter
+          },
+          cv: form.cvFile || undefined
+        }
+      )
 
       // Rediriger vers la page de confirmation
       router.push(`/campaigns/${campaignId}/apply/success`)

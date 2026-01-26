@@ -20,11 +20,59 @@ import Background from "@/components/ui/Background";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
+import { CampaignStatus } from "@/types/campaign";
 
 // Types
 type FilterType = "all" | "company" | "school";
 type FilterStatus = "all" | "active" | "closed" | "upcoming";
 type FilterTarget = "all" | "students" | "companies" | "both";
+
+// Type adapter to convert hook's Campaign to component's expected Campaign
+const adaptCampaignForCard = (hookCampaign: any) => {
+  // Map backend status to frontend status
+  const getCardStatus = (backendStatus: string): CampaignStatus => {
+    switch (backendStatus) {
+      case 'OPEN':
+        return 'active';
+      case 'CLOSED':
+        return 'closed';
+      case 'LOCKED':
+        return 'upcoming';
+      default:
+        return 'upcoming';
+    }
+  };
+
+  // Generate default dates if not provided
+  const now = new Date();
+  const defaultStartDate = hookCampaign.startDate || now.toISOString();
+  const defaultEndDate = hookCampaign.endDate || new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days from now
+
+  return {
+    id: hookCampaign.id,
+    title: hookCampaign.name,
+    description: hookCampaign.description,
+    companyDeadline: hookCampaign.deadline,
+    studentDeadline: hookCampaign.deadline,
+    startDate: defaultStartDate,
+    endDate: defaultEndDate,
+    status: getCardStatus(hookCampaign.status),
+    location: hookCampaign.location || 'À définir',
+    participants: hookCampaign.participants || 0,
+    maxParticipants: hookCampaign.maxParticipants || 100,
+    tags: hookCampaign.tags || [],
+    requirements: hookCampaign.requirements || [],
+    type: 'school' as const,
+    target: 'students' as const,
+    invitedCompanyEmails: hookCampaign.invitedCompanyEmails || [],
+    respondedCompanies: hookCampaign.respondedCompanies || [],
+    createdBy: {
+      id: hookCampaign.schoolId,
+      name: hookCampaign.schoolName || 'École',
+      logo: hookCampaign.schoolLogo || '/logos/school.png'
+    }
+  };
+};
 
 // Composants
 const StatCard = ({
@@ -162,33 +210,28 @@ export default function CampaignsPage() {
     return campaigns.filter((campaign) => {
       const matchesSearch =
         searchQuery === "" ||
-        campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        campaign.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         campaign.description
           .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        campaign.createdBy?.name
-          ?.toLowerCase()
           .includes(searchQuery.toLowerCase());
 
-      const matchesType =
-        filters.type === "all" || campaign.type === filters.type;
+      // Simplifier les filtres pour correspondre aux propriétés disponibles
       const matchesStatus =
-        filters.status === "all" || campaign.status === filters.status;
-      const matchesTarget =
-        filters.target === "all" || campaign.target === filters.target;
+        filters.status === "all" || 
+        (filters.status === "active" && campaign.status === "OPEN") ||
+        (filters.status === "closed" && campaign.status === "CLOSED") ||
+        (filters.status === "upcoming" && campaign.status === "LOCKED");
 
-      // Pour les étudiants, ne montrer que les campagnes ouvertes aux étudiants
+      // Pour les étudiants, ne montrer que les campagnes ouvertes
       if (user?.role === "student") {
         return (
           matchesSearch &&
-          matchesType &&
           matchesStatus &&
-          (campaign.target === "students" || campaign.target === "both") &&
-          campaign.status === "active"
+          campaign.status === "OPEN"
         );
       }
 
-      return matchesSearch && matchesType && matchesStatus && matchesTarget;
+      return matchesSearch && matchesStatus;
     });
   }, [searchQuery, filters, isAuthenticated, user, campaignsList]);
 
@@ -198,8 +241,8 @@ export default function CampaignsPage() {
 
   const stats = useMemo(
     () => ({
-      active: campaignsList.filter((c) => c.status === "active").length,
-      upcoming: campaignsList.filter((c) => c.status === "upcoming").length,
+      active: campaignsList.filter((c) => c.status === "OPEN").length,
+      upcoming: campaignsList.filter((c) => c.status === "LOCKED").length,
       total: campaignsList.length,
     }),
     [campaignsList],
@@ -427,7 +470,7 @@ export default function CampaignsPage() {
                         transition={{ delay: 0.1 * (index % 8) }}
                       >
                         <CampaignCard
-                          campaign={campaign}
+                          campaign={adaptCampaignForCard(campaign)}
                           isAuthenticated={isAuthenticated}
                           userRole={user?.role || undefined}
                         />
