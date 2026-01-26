@@ -20,6 +20,8 @@ interface AuthContextType {
   logout: () => void;
   getToken: () => string | null;
   setUser: (user: User | null) => void;
+  getAllUsers: () => Promise<User[]>;
+  getUsersByRole: (role: string) => Promise<User[]>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       // TODO: Remplacer par vrai appel API
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('http://localhost:8083/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -51,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: data.userId,
         email: data.email,
         name: data.name,
-        role: data.role,
+        role: data.role.toLowerCase(),
         companyId: data.companyId,
         schoolId: data.schoolId
       };
@@ -75,6 +77,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return localStorage.getItem('token');
   };
 
+  const getAllUsers = async (): Promise<User[]> => {
+    try {
+      const response = await fetch('http://localhost:8083/users');
+      if (!response.ok) throw new Error('Failed to fetch users');
+      const data = await response.json();
+      return data.map((user: any) => ({
+        id: user.userId,
+        email: user.email,
+        name: user.email.split('@')[0], // Fallback name from email
+        role: user.role.toLowerCase(),
+        companyId: user.companyId,
+        schoolId: user.schoolId
+      }));
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      throw error;
+    }
+  };
+
+  const getUsersByRole = async (role: string): Promise<User[]> => {
+    try {
+      const response = await fetch(`http://localhost:8083/users/role/${role.toUpperCase()}`);
+      if (!response.ok) throw new Error('Failed to fetch users by role');
+      const data = await response.json();
+      return data.map((user: any) => ({
+        id: user.userId,
+        email: user.email,
+        name: user.email.split('@')[0],
+        role: user.role.toLowerCase(),
+        companyId: user.companyId,
+        schoolId: user.schoolId
+      }));
+    } catch (error) {
+      console.error('Error fetching users by role:', error);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -82,7 +122,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login, 
       logout, 
       getToken,
-      setUser 
+      setUser,
+      getAllUsers,
+      getUsersByRole
     }}>
       {children}
     </AuthContext.Provider>

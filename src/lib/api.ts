@@ -197,18 +197,17 @@ export const invitations = {
 // Authentication - Service Auth (port 8083) - À implémenter
 export const auth = {
   login: (email: string, password: string) =>
-    authApi.post("/api/auth/login", { email, password }),
-  register: (data: any) => authApi.post("/api/auth/register", data),
-  logout: () => authApi.post("/api/auth/logout"),
+    authApi.post("/auth/login", { email, password }),
+  register: (data: any) => authApi.post("/auth/register", data),
+  logout: () => authApi.post("/auth/logout"),
   refreshToken: (refreshToken: string) =>
-    authApi.post("/api/auth/refresh", { refreshToken }),
+    authApi.post("/auth/refresh", { refreshToken }),
   forgotPassword: (email: string) =>
-    authApi.post("/api/auth/forgot-password", { email }),
+    authApi.post("/auth/forgot-password", { email }),
   resetPassword: (token: string, password: string) =>
-    authApi.post("/api/auth/reset-password", { token, password }),
-  verifyEmail: (token: string) =>
-    authApi.post("/api/auth/verify-email", { token }),
-  getProfile: () => authApi.get("/api/auth/profile"),
+    authApi.post("/auth/reset-password", { token, password }),
+  verifyEmail: (token: string) => authApi.post("/auth/verify-email", { token }),
+  getProfile: () => authApi.get("/auth/profile"),
 };
 
 // Export pour compatibilité avec le code existant
