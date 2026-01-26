@@ -38,10 +38,10 @@ const StatCard = ({
   icon: React.ReactNode;
   color: string;
 }) => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
+  <div className="bg-white dark:bg-slate-900/80 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 hover:shadow-md transition-shadow duration-200">
     <div className="flex items-center justify-between">
       <div>
-        <p className="text-sm text-gray-500 font-medium">{title}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{title}</p>
         <p className={`text-2xl font-bold text-${color}-600 mt-1`}>{value}</p>
       </div>
       <div className={`p-3 bg-${color}-50 rounded-full`}>{icon}</div>
@@ -50,9 +50,9 @@ const StatCard = ({
 );
 
 const LoadingState = () => (
-  <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-100">
+  <div className="text-center py-12 bg-white dark:bg-slate-900/80 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800">
     <div className="animate-spin w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-    <p className="text-gray-600">Chargement des campagnes...</p>
+    <p className="text-gray-600 dark:text-gray-400">Chargement des campagnes...</p>
   </div>
 );
 
@@ -63,7 +63,7 @@ const ErrorState = ({
   error: string;
   onRetry: () => void;
 }) => (
-  <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-100">
+  <div className="text-center py-12 bg-white dark:bg-slate-900/80 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800">
     <div className="text-red-500 mb-4">
       <svg
         className="w-8 h-8 mx-auto"
@@ -79,10 +79,10 @@ const ErrorState = ({
         />
       </svg>
     </div>
-    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+    <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
       Erreur de chargement
     </h3>
-    <p className="text-gray-600 mb-4">{error}</p>
+    <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
     <button
       onClick={onRetry}
       className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200"
@@ -94,16 +94,16 @@ const ErrorState = ({
 );
 
 const NoResults = ({ onReset }: { onReset: () => void }) => (
-  <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-100">
-    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+  <div className="text-center py-12 bg-white dark:bg-slate-900/80 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800">
+    <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
       Aucune campagne trouvée
     </h3>
-    <p className="text-gray-600 mb-4">
+    <p className="text-gray-600 dark:text-gray-400 mb-4">
       Essayez de modifier vos critères de recherche ou de filtrage.
     </p>
     <button
       onClick={onReset}
-      className="inline-flex items-center text-purple-600 hover:text-purple-700 font-medium transition-colors duration-200"
+      className="inline-flex items-center text-purple-600 hover:text-purple-700 dark:text-purple-300 dark:hover:text-purple-200 font-medium transition-colors duration-200"
     >
       Réinitialiser les filtres
       <ArrowRight className="w-4 h-4 ml-2" />
@@ -249,7 +249,7 @@ export default function CampaignsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-slate-950 dark:to-slate-900 py-12 relative overflow-hidden">
       <Background />
 
       <div className="container mx-auto px-4 relative">
@@ -258,7 +258,7 @@ export default function CampaignsPage() {
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center px-4 py-2 bg-purple-100 rounded-full text-purple-700 text-sm font-medium mb-4"
+            className="inline-flex items-center px-4 py-2 bg-purple-100 dark:bg-purple-500/20 rounded-full text-purple-700 dark:text-purple-200 text-sm font-medium mb-4"
           >
             <Sparkles className="w-4 h-4 mr-2" />
             {!isAuthenticated
@@ -269,7 +269,7 @@ export default function CampaignsPage() {
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-4xl font-bold text-gray-900"
+              className="text-4xl font-bold text-gray-900 dark:text-gray-100"
             >
               {getPageTitle()}
             </motion.h1>
@@ -294,7 +294,7 @@ export default function CampaignsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-xl text-gray-600 max-w-2xl mx-auto"
+            className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto"
           >
             {getPageDescription()}
           </motion.p>
@@ -325,9 +325,9 @@ export default function CampaignsPage() {
 
         {/* Séparateur décoratif */}
         <div className="flex items-center justify-center mb-12">
-          <div className="h-px w-24 bg-gray-200"></div>
-          <ChevronDown className="w-6 h-6 text-gray-400 mx-4" />
-          <div className="h-px w-24 bg-gray-200"></div>
+          <div className="h-px w-24 bg-gray-200 dark:bg-slate-800"></div>
+          <ChevronDown className="w-6 h-6 text-gray-400 dark:text-gray-500 mx-4" />
+          <div className="h-px w-24 bg-gray-200 dark:bg-slate-800"></div>
         </div>
 
         {/* Statistiques - seulement pour les utilisateurs connectés */}
@@ -387,10 +387,10 @@ export default function CampaignsPage() {
             {/* Filtres simplifiés pour visiteurs */}
             {!isAuthenticated && (
               <div className="mb-6 flex items-center justify-between">
-                <p className="text-gray-600">
+                <p className="text-gray-600 dark:text-gray-400">
                   Aperçu des opportunités disponibles
                 </p>
-                <div className="flex items-center text-sm text-gray-500">
+                <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                   <Filter className="w-4 h-4 mr-1" />
                   Connectez-vous pour plus de filtres
                 </div>
@@ -441,12 +441,12 @@ export default function CampaignsPage() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.6 }}
-                      className="mt-12 text-center bg-blue-50 rounded-lg p-8 border border-blue-200"
+                      className="mt-12 text-center bg-blue-50 dark:bg-blue-500/10 rounded-lg p-8 border border-blue-200 dark:border-blue-400/30"
                     >
-                      <h3 className="text-xl font-semibold text-blue-900 mb-2">
+                      <h3 className="text-xl font-semibold text-blue-900 dark:text-blue-200 mb-2">
                         Vous voulez voir plus d'opportunités ?
                       </h3>
-                      <p className="text-blue-700 mb-4">
+                      <p className="text-blue-700 dark:text-blue-200/80 mb-4">
                         Créez votre compte pour accéder à toutes les campagnes,
                         utiliser les filtres avancés et candidater directement.
                       </p>

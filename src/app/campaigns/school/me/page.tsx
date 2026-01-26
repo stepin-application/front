@@ -24,6 +24,7 @@ export default function SchoolCampaignsPage() {
   const router = useRouter();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCampaigns();
@@ -31,14 +32,19 @@ export default function SchoolCampaignsPage() {
 
   const fetchCampaigns = async () => {
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
       const response = await fetch('/api/schools/me/campaigns', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
       if (!response.ok) throw new Error('Failed');
-      const data = await response.json();
-      setCampaigns(data);
+      const data = await response.json().catch(() => []);
+      setCampaigns(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error:', error);
+      setError("Impossible de charger les campagnes de l'école.");
     } finally {
       setLoading(false);
     }
@@ -71,6 +77,11 @@ export default function SchoolCampaignsPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-6xl mx-auto px-4">
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-800">
+            {error}
+          </div>
+        )}
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Mes Campagnes</h1>

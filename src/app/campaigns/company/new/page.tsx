@@ -43,10 +43,11 @@ function NewCompanyCampaignPageContent() {
   const fetchCampaignInfo = async () => {
     try {
       const response = await fetch(`/api/campaigns/${campaignId}`);
-      const data = await response.json();
+      if (!response.ok) throw new Error('Failed to fetch campaign info');
+      const data = await response.json().catch(() => ({}));
       setCampaignInfo({
-        schoolName: data.school.name,
-        campaignName: data.title
+        schoolName: data?.school?.name || 'École',
+        campaignName: data?.title || 'Campagne'
       });
     } catch (error) {
       console.error('Error fetching campaign info:', error);

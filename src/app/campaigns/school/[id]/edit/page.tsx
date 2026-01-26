@@ -48,23 +48,23 @@ export default function EditSchoolCampaignPage() {
       });
       if (!response.ok) throw new Error('Failed to fetch campaign');
       
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       setFormData({
-        title: data.title,
-        description: data.description,
-        startDate: data.startDate.split('T')[0],
-        endDate: data.endDate.split('T')[0],
-        location: data.location,
-        maxParticipants: data.maxParticipants?.toString() || '',
+        title: data?.title || '',
+        description: data?.description || '',
+        startDate: data?.startDate ? data.startDate.split('T')[0] : '',
+        endDate: data?.endDate ? data.endDate.split('T')[0] : '',
+        location: data?.location || '',
+        maxParticipants: data?.maxParticipants?.toString() || '',
         image: null,
-        requirements: data.requirements || [''],
-        benefits: data.benefits || [''],
-        tags: data.tags || [''],
-        invitedCompanies: data.invitedCompanies || []
+        requirements: Array.isArray(data?.requirements) ? data.requirements : [''],
+        benefits: Array.isArray(data?.benefits) ? data.benefits : [''],
+        tags: Array.isArray(data?.tags) ? data.tags : [''],
+        invitedCompanies: Array.isArray(data?.invitedCompanies) ? data.invitedCompanies : []
       });
-      setSelectedCompanies(data.invitedCompanies || []);
-      setCampaignStatus(data.status);
-      setDeadline(data.deadline);
+      setSelectedCompanies(Array.isArray(data?.invitedCompanies) ? data.invitedCompanies : []);
+      setCampaignStatus(data?.status || 'OPEN');
+      setDeadline(data?.deadline || '');
     } catch (error) {
       console.error('Error:', error);
       toast.error('Erreur lors du chargement de la campagne');

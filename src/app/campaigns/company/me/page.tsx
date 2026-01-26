@@ -40,8 +40,8 @@ export default function CompanyJobsPage() {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (!response.ok) throw new Error('Failed to fetch jobs');
-      const data = await response.json();
-      setJobs(data);
+      const data = await response.json().catch(() => []);
+      setJobs(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error:', error);
     } finally {

@@ -55,17 +55,30 @@ export default function StudentDashboard() {
 
     const fetchDashboardData = async () => {
       try {
-        const [statsRes, campaignsRes, applicationsRes, notificationsRes] = await Promise.all([
+        const [statsRes, campaignsRes, applicationsRes, notificationsRes] = await Promise.allSettled([
           api.get('/students/stats'),
           api.get('/students/recommended-campaigns'),
           api.get('/students/recent-applications'),
           api.get('/students/notifications')
         ])
 
-        setStats(statsRes.data)
-        setRecommendedCampaigns(campaignsRes.data.slice(0, 4))
-        setRecentApplications(applicationsRes.data.slice(0, 5))
-        setNotifications(notificationsRes.data.slice(0, 3))
+        const unwrap = (res: any) => (res && typeof res === 'object' && 'data' in res ? res.data : res)
+
+        const statsValue = statsRes.status === 'fulfilled' ? unwrap(statsRes.value) : null
+        const campaignsValue = campaignsRes.status === 'fulfilled' ? unwrap(campaignsRes.value) : []
+        const applicationsValue = applicationsRes.status === 'fulfilled' ? unwrap(applicationsRes.value) : []
+        const notificationsValue = notificationsRes.status === 'fulfilled' ? unwrap(notificationsRes.value) : []
+
+        setStats({
+          totalApplications: Number(statsValue?.totalApplications ?? 0),
+          pendingApplications: Number(statsValue?.pendingApplications ?? 0),
+          acceptedApplications: Number(statsValue?.acceptedApplications ?? 0),
+          rejectedApplications: Number(statsValue?.rejectedApplications ?? 0),
+          newCampaigns: Number(statsValue?.newCampaigns ?? 0)
+        })
+        setRecommendedCampaigns(Array.isArray(campaignsValue) ? campaignsValue.slice(0, 4) : [])
+        setRecentApplications(Array.isArray(applicationsValue) ? applicationsValue.slice(0, 5) : [])
+        setNotifications(Array.isArray(notificationsValue) ? notificationsValue.slice(0, 3) : [])
       } catch (error) {
         console.error('Erreur lors du chargement du dashboard:', error)
       } finally {

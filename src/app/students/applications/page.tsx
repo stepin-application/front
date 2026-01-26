@@ -59,10 +59,17 @@ export default function StudentApplications() {
     const fetchApplications = async () => {
       try {
         const response = await api.get('/students/applications')
-        setApplications(response.data)
-        setFilteredApplications(response.data)
+        const data =
+          response && typeof response === 'object' && 'data' in response
+            ? (response as any).data
+            : response
+        const list = Array.isArray(data) ? data : []
+        setApplications(list)
+        setFilteredApplications(list)
       } catch (error) {
         console.error('Erreur lors du chargement des candidatures:', error)
+        setApplications([])
+        setFilteredApplications([])
       } finally {
         setLoading(false)
       }

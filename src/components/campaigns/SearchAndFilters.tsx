@@ -49,7 +49,7 @@ export default function SearchAndFilters({ onSearch, onFilterChange, userRole }:
     <div className="space-y-6">
       {/* Type de campagne */}
       <div className="space-y-2">
-        <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+        <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
           <Filter className="w-4 h-4" />
           <span>Type de campagne</span>
         </div>
@@ -82,7 +82,7 @@ export default function SearchAndFilters({ onSearch, onFilterChange, userRole }:
 
       {/* Statut */}
       <div className="space-y-2">
-        <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+        <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
           <Calendar className="w-4 h-4" />
           <span>Statut</span>
         </div>
@@ -123,7 +123,7 @@ export default function SearchAndFilters({ onSearch, onFilterChange, userRole }:
 
       {/* Cible */}
       <div className="space-y-2">
-        <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+        <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
           <Users className="w-4 h-4" />
           <span>Public cible</span>
         </div>
@@ -162,15 +162,15 @@ export default function SearchAndFilters({ onSearch, onFilterChange, userRole }:
   );
 
   return (
-    <Card className="p-6 bg-white shadow-sm rounded-xl">
+    <Card className="p-6 bg-white dark:bg-slate-900/80 shadow-sm rounded-xl border border-gray-100 dark:border-slate-800">
       <div className="space-y-6">
         {/* Barre de recherche */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
           <Input
             type="text"
             placeholder="Rechercher une campagne..."
-            className="pl-10 pr-4 h-12 text-base border-2 focus:border-purple-500 transition-colors rounded-lg"
+            className="pl-10 pr-4 h-12 text-base border-2 focus:border-purple-500 transition-colors rounded-lg dark:bg-slate-950 dark:text-gray-100 dark:border-slate-800 dark:placeholder:text-gray-500"
             value={searchQuery}
             onChange={handleSearch}
           />
@@ -190,7 +190,7 @@ export default function SearchAndFilters({ onSearch, onFilterChange, userRole }:
                 Filtres
               </Button>
             </SheetTrigger>
-            <SheetContent side="bottom" className="h-[80vh]">
+            <SheetContent side="bottom" className="h-[80vh] dark:bg-slate-950">
               <FiltersContent />
             </SheetContent>
           </Sheet>

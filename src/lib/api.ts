@@ -12,12 +12,31 @@ function getAuthHeaders() {
 
 async function handleResponse(response: Response) {
   if (!response.ok) {
-    const error = await response
-      .json()
-      .catch(() => ({ message: "Unknown error" }));
-    throw new Error(error.message || `HTTP ${response.status}`);
+    let message = `HTTP ${response.status}`;
+    try {
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const error = await response.json();
+        message = error?.message || message;
+      } else {
+        const text = await response.text();
+        if (text) {
+          message = text;
+        }
+      }
+    } catch {
+      // Fallback to generic status message
+    }
+    throw new Error(message);
   }
-  return response.json();
+  if (response.status === 204) {
+    return null;
+  }
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    return response.json();
+  }
+  return response.text();
 }
 
 // Helper pour retry avec délai exponentiel

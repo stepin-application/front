@@ -13,6 +13,7 @@ export default function CandidateForm() {
     password: "",
     confirmPassword: "",
     role: "student" as "student" | "school" | "company",
+    schoolStaffRole: "STAFF" as "STAFF" | "SCHOOL_ADMIN",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -28,19 +29,47 @@ export default function CandidateForm() {
       return;
     }
 
+    const generateUUID = () => {
+      if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+        return crypto.randomUUID();
+      }
+      return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === "x" ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
+    };
+
     try {
       // Map frontend role to backend role
       const roleMapping = {
         student: "STUDENT",
         school: "SCHOOL_STAFF",
         company: "COMPANY_USER",
-      };
+      } as const;
 
-      const response = await auth.register({
+      const payload: {
+        email: string;
+        password: string;
+        role: (typeof roleMapping)[keyof typeof roleMapping];
+        schoolId?: string;
+        companyId?: string;
+        schoolStaffRole?: "STAFF" | "SCHOOL_ADMIN";
+      } = {
         email: formData.email,
         password: formData.password,
         role: roleMapping[formData.role],
-      });
+      };
+
+      if (formData.role === "company") {
+        payload.companyId = generateUUID();
+      }
+      if (formData.role === "school") {
+        payload.schoolId = generateUUID();
+        payload.schoolStaffRole = formData.schoolStaffRole;
+      }
+
+      await auth.register(payload);
 
       toast.success(
         "Inscription réussie ! Vous pouvez maintenant vous connecter.",
@@ -110,6 +139,32 @@ export default function CandidateForm() {
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
         />
       </div>
+
+      {formData.role === "school" && (
+        <div>
+          <label
+            htmlFor="schoolStaffRole"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Rôle dans l'école
+          </label>
+          <select
+            id="schoolStaffRole"
+            name="schoolStaffRole"
+            value={formData.schoolStaffRole}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                schoolStaffRole: e.target.value as "STAFF" | "SCHOOL_ADMIN",
+              })
+            }
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
+          >
+            <option value="STAFF">Staff</option>
+            <option value="SCHOOL_ADMIN">Administrateur</option>
+          </select>
+        </div>
+      )}
 
       <div>
         <label

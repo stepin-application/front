@@ -29,11 +29,24 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
+  const normalizeRole = (role: string | null | undefined): UserRole => {
+    if (!role) return null;
+    const value = role.toLowerCase();
+    if (value.startsWith('school')) return 'school';
+    if (value.startsWith('company')) return 'company';
+    if (value.startsWith('student')) return 'student';
+    return null;
+  };
+
   useEffect(() => {
     // Charger l'utilisateur depuis localStorage au démarrage
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      const parsed = JSON.parse(storedUser);
+      setUser({
+        ...parsed,
+        role: normalizeRole(parsed.role),
+      });
     }
   }, []);
 
@@ -53,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: data.userId,
         email: data.email,
         name: data.name,
-        role: data.role.toLowerCase(),
+        role: normalizeRole(data.role),
         companyId: data.companyId,
         schoolId: data.schoolId
       };
@@ -86,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: user.userId,
         email: user.email,
         name: user.email.split('@')[0], // Fallback name from email
-        role: user.role.toLowerCase(),
+        role: normalizeRole(user.role),
         companyId: user.companyId,
         schoolId: user.schoolId
       }));
@@ -105,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: user.userId,
         email: user.email,
         name: user.email.split('@')[0],
-        role: user.role.toLowerCase(),
+        role: normalizeRole(user.role),
         companyId: user.companyId,
         schoolId: user.schoolId
       }));

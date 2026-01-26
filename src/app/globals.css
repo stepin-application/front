@@ -120,3 +120,87 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Global dark-mode overrides for common hardcoded Tailwind colors */
+  .dark .bg-white {
+    background-color: var(--card);
+  }
+  .dark .bg-gray-50 {
+    background-color: color-mix(in oklch, var(--background) 92%, black);
+  }
+  .dark .bg-gray-100 {
+    background-color: color-mix(in oklch, var(--background) 85%, black);
+  }
+  .dark .bg-blue-50 {
+    background-color: color-mix(in oklch, var(--background) 85%, #1e40af);
+  }
+  .dark .bg-purple-100 {
+    background-color: color-mix(in oklch, var(--background) 82%, #7c3aed);
+  }
+  .dark .bg-indigo-100 {
+    background-color: color-mix(in oklch, var(--background) 82%, #4338ca);
+  }
+  .dark .bg-yellow-100 {
+    background-color: color-mix(in oklch, var(--background) 82%, #a16207);
+  }
+  .dark .text-gray-900 {
+    color: var(--foreground);
+  }
+  .dark .text-gray-800 {
+    color: color-mix(in oklch, var(--foreground) 90%, white);
+  }
+  .dark .text-gray-700 {
+    color: color-mix(in oklch, var(--foreground) 80%, white);
+  }
+  .dark .text-gray-600 {
+    color: color-mix(in oklch, var(--foreground) 70%, white);
+  }
+  .dark .text-gray-500 {
+    color: color-mix(in oklch, var(--foreground) 60%, white);
+  }
+  .dark .text-gray-400 {
+    color: color-mix(in oklch, var(--foreground) 50%, white);
+  }
+  .dark .text-blue-900 {
+    color: color-mix(in oklch, var(--foreground) 92%, white);
+  }
+  .dark .text-blue-700 {
+    color: color-mix(in oklch, var(--foreground) 78%, white);
+  }
+  .dark .text-blue-600 {
+    color: color-mix(in oklch, var(--foreground) 72%, white);
+  }
+  .dark .text-purple-700 {
+    color: color-mix(in oklch, var(--foreground) 80%, white);
+  }
+  .dark .text-purple-600 {
+    color: color-mix(in oklch, var(--foreground) 74%, white);
+  }
+  .dark .border-gray-100,
+  .dark .border-gray-200,
+  .dark .border-gray-300 {
+    border-color: var(--border);
+  }
+  /* Normalize common gradient utilities in dark mode */
+  .dark .bg-gradient-to-b {
+    background-image: none;
+    background-color: var(--background);
+  }
+  .dark .from-gray-50 {
+    --tw-gradient-from: color-mix(in oklch, var(--background) 90%, black);
+    --tw-gradient-to: color-mix(in oklch, var(--background) 90%, black);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .dark .from-white {
+    --tw-gradient-from: var(--background);
+    --tw-gradient-to: var(--background);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .dark .to-white {
+    --tw-gradient-to: var(--background);
+  }
+  .dark .via-white {
+    --tw-gradient-stops: var(--tw-gradient-from), var(--background), var(--tw-gradient-to);
+  }
+}

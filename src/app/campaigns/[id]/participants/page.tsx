@@ -39,9 +39,9 @@ export default function ParticipantsPage() {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (!response.ok) throw new Error('Failed');
-      const data = await response.json();
-      setParticipants(data.participants);
-      setCampaignTitle(data.campaignTitle);
+      const data = await response.json().catch(() => ({}));
+      setParticipants(Array.isArray(data?.participants) ? data.participants : []);
+      setCampaignTitle(typeof data?.campaignTitle === 'string' ? data.campaignTitle : '');
     } catch (error) {
       console.error('Error:', error);
     } finally {

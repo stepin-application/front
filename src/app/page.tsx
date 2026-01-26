@@ -51,18 +51,22 @@ const FeatureCard = ({ icon, title, description, step }: {
 );
 
 // Composant CampaignPreview
-const CampaignPreview = ({ campaign }: { campaign: Campaign }) => (
+const CampaignPreview = ({ campaign }: { campaign: Campaign }) => {
+  const createdBy = campaign.createdBy ?? { name: 'Organisation' };
+  const tags = Array.isArray(campaign.tags) ? campaign.tags : [];
+
+  return (
   <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all duration-200 hover:-translate-y-1">
     <div className="flex items-start justify-between mb-4">
       <div className="flex items-center">
         <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
           <span className="text-gray-600 font-bold text-lg">
-            {campaign.createdBy.name.charAt(0)}
+            {createdBy.name.charAt(0)}
           </span>
         </div>
         <div>
           <h3 className="font-semibold text-gray-900 text-lg">{campaign.title}</h3>
-          <p className="text-sm text-gray-600">{campaign.createdBy.name}</p>
+          <p className="text-sm text-gray-600">{createdBy.name}</p>
         </div>
       </div>
       <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
@@ -76,14 +80,14 @@ const CampaignPreview = ({ campaign }: { campaign: Campaign }) => (
     
     <div className="flex items-center justify-between mb-4">
       <div className="flex flex-wrap gap-2">
-        {campaign.tags.slice(0, 2).map((tag) => (
+        {tags.slice(0, 2).map((tag) => (
           <span key={tag} className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
             {tag}
           </span>
         ))}
       </div>
       <span className="text-xs text-gray-500">
-        Échéance: {new Date(campaign.studentDeadline).toLocaleDateString()}
+        Échéance: {campaign.studentDeadline ? new Date(campaign.studentDeadline).toLocaleDateString() : 'À venir'}
       </span>
     </div>
 
@@ -94,7 +98,8 @@ const CampaignPreview = ({ campaign }: { campaign: Campaign }) => (
       Créer un compte pour candidater
     </Link>
   </div>
-);
+  );
+};
 
 export default function HomePage() {
   const { user } = useAuth()
@@ -121,8 +126,17 @@ export default function HomePage() {
     // Charger les campagnes mises en avant pour les visiteurs
     const fetchFeaturedCampaigns = async () => {
       try {
-        const response = await api.get('/campaigns/featured')
-        setFeaturedCampaigns(response.data.slice(0, 3)) // Limiter à 3 campagnes
+        const unwrap = (res: any) =>
+          res && typeof res === 'object' && 'data' in res ? (res as any).data : res
+        try {
+          const response = await api.get('/campaigns/featured')
+          const data = unwrap(response)
+          setFeaturedCampaigns((Array.isArray(data) ? data : []).slice(0, 3))
+        } catch {
+          const response = await api.get('/campaigns/active')
+          const data = unwrap(response)
+          setFeaturedCampaigns((Array.isArray(data) ? data : []).slice(0, 3))
+        }
       } catch (error) {
         console.error('Erreur lors du chargement des campagnes:', error)
       } finally {

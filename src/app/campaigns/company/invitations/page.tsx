@@ -57,8 +57,8 @@ export default function CompanyInvitationsPage() {
       
       if (!response.ok) throw new Error('Failed to fetch invitations');
       
-      const data = await response.json();
-      setInvitations(data);
+      const data = await response.json().catch(() => []);
+      setInvitations(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching invitations:', error);
     } finally {

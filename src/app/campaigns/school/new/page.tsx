@@ -31,10 +31,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function NewSchoolCampaignPage() {
   const router = useRouter();
   const { createCampaign, inviteCompany, loading, error } = useCampaigns();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -118,9 +120,14 @@ export default function NewSchoolCampaignPage() {
       return;
     }
 
+    if (!user?.schoolId) {
+      toast.error("Impossible d'identifier votre école. Veuillez vous reconnecter.");
+      return;
+    }
+
     // Créer la campagne avec le hook
     const campaign = await createCampaign({
-      schoolId: "00000000-0000-0000-0000-000000000001", // TODO: Récupérer l'ID de l'école connectée
+      schoolId: user.schoolId,
       name: formData.title,
       description: formData.description,
       deadline: new Date(formData.companyDeadline).toISOString(),
