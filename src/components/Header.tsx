@@ -44,6 +44,18 @@ export default function Header() {
     if (user?.role === 'student') {
       baseItems.push(
         {
+          name: "Dashboard",
+          href: "/students/dashboard",
+          icon: Home,
+          description: "Tableau de bord étudiant"
+        },
+        {
+          name: "Mon profil",
+          href: "/students/profile",
+          icon: GraduationCap,
+          description: "Gérez votre profil"
+        },
+        {
           name: "Mes candidatures",
           href: "/students/applications",
           icon: Briefcase,

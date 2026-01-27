@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Campaign, JobOpening } from '@/types/campaign'
-import { jobOpeningApi, campaigns, api } from '@/lib/api'
+import { jobOpeningApi, campaigns, api, studentProfiles } from '@/lib/api'
 import { useRouter, useParams } from 'next/navigation'
 import { 
   Upload, 
@@ -16,7 +16,8 @@ import {
   Calendar,
   Clock,
   Users,
-  Briefcase
+  Briefcase,
+  User
 } from 'lucide-react'
 
 interface ApplicationForm {
@@ -37,6 +38,8 @@ export default function ApplyToCampaign() {
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [jobOpenings, setJobOpenings] = useState<JobOpening[]>([])
   const [hasApplied, setHasApplied] = useState(false)
+  const [hasProfile, setHasProfile] = useState(false)
+  const [profileLoading, setProfileLoading] = useState(true)
   const [form, setForm] = useState<ApplicationForm>({
     jobOpeningId: '',
     coverLetter: '',
@@ -49,6 +52,18 @@ export default function ApplyToCampaign() {
     if (!user || user.role !== 'student') {
       router.push('/login')
       return
+    }
+
+    // Vérifier d'abord si l'étudiant a un profil complet
+    const checkProfile = async () => {
+      try {
+        await studentProfiles.get()
+        setHasProfile(true)
+      } catch (error) {
+        setHasProfile(false)
+      } finally {
+        setProfileLoading(false)
+      }
     }
 
     const fetchCampaignData = async () => {
@@ -75,6 +90,7 @@ export default function ApplyToCampaign() {
       }
     }
 
+    checkProfile()
     fetchCampaignData()
   }, [campaignId, user, router])
 
@@ -223,6 +239,38 @@ export default function ApplyToCampaign() {
               className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Autres opportunités
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Vérifier si l'étudiant a complété son profil
+  if (!profileLoading && !hasProfile) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="bg-blue-100 p-4 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+            <User className="w-10 h-10 text-blue-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Complétez votre profil</h2>
+          <p className="text-gray-600 mb-6">
+            Pour candidater à cette campagne, vous devez d'abord compléter votre profil. 
+            Cela permettra à notre IA de mieux vous matcher avec les opportunités.
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => router.push('/students/profile')}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              Compléter mon profil
+            </button>
+            <button
+              onClick={() => router.back()}
+              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Retour
             </button>
           </div>
         </div>

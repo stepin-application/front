@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Campaign, StudentApplication, Notification } from '@/types/campaign'
-import { api } from '@/lib/api'
+import { api, studentProfiles } from '@/lib/api'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { 
@@ -21,7 +21,9 @@ import {
   Send,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  User,
+  Edit
 } from 'lucide-react'
 
 interface DashboardStats {
@@ -36,6 +38,8 @@ export default function StudentDashboard() {
   const { user } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
+  const [hasProfile, setHasProfile] = useState(false)
+  const [profileLoading, setProfileLoading] = useState(true)
   const [stats, setStats] = useState<DashboardStats>({
     totalApplications: 0,
     pendingApplications: 0,
@@ -46,6 +50,24 @@ export default function StudentDashboard() {
   const [recommendedCampaigns, setRecommendedCampaigns] = useState<Campaign[]>([])
   const [recentApplications, setRecentApplications] = useState<StudentApplication[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
+
+  // Vérifier si l'étudiant a un profil complet
+  useEffect(() => {
+    const checkProfile = async () => {
+      try {
+        await studentProfiles.get()
+        setHasProfile(true)
+      } catch (error) {
+        setHasProfile(false)
+      } finally {
+        setProfileLoading(false)
+      }
+    }
+
+    if (user?.role === 'student') {
+      checkProfile()
+    }
+  }, [user])
 
   useEffect(() => {
     if (!user || user.role !== 'student') {
@@ -143,6 +165,61 @@ export default function StudentDashboard() {
             Voici un aperçu de vos candidatures et des nouvelles opportunités
           </p>
         </div>
+
+        {/* Banner de complétion du profil */}
+        {!profileLoading && !hasProfile && (
+          <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-6 mb-8 text-white">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="bg-white/20 p-3 rounded-full mr-4">
+                  <User className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-1">
+                    Complétez votre profil pour de meilleurs matches !
+                  </h3>
+                  <p className="text-blue-100">
+                    Notre IA utilise votre profil pour vous proposer les meilleures opportunités. 
+                    Plus il est complet, plus les matches seront précis.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/students/profile"
+                className="bg-white text-blue-600 px-6 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors flex items-center"
+              >
+                Compléter mon profil
+                <ChevronRight className="w-4 h-4 ml-2" />
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Banner de profil complété */}
+        {!profileLoading && hasProfile && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
+                <div>
+                  <p className="text-green-800 font-medium">
+                    Profil complété ! Vous êtes prêt pour le matching AI.
+                  </p>
+                  <p className="text-green-600 text-sm">
+                    Vous pouvez modifier votre profil à tout moment pour améliorer vos matches.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/students/profile"
+                className="text-green-600 hover:text-green-700 font-medium flex items-center"
+              >
+                <Edit className="w-4 h-4 mr-1" />
+                Modifier
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
