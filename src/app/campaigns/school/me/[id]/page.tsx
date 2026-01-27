@@ -38,6 +38,7 @@ import {
   DialogTrigger 
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { schoolCampaignInvitePath } from "@/lib/utils";
 
 // TODO: À remplacer par l'ID de l'école connectée
 const SCHOOL_ID = 'school_1';
@@ -332,7 +333,13 @@ export default function SchoolCampaignDetailsPage() {
                     Contacter les participants
                   </Button>
                   
-                  <Button variant="outline" className="w-full justify-start text-sm">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-sm"
+                    onClick={() =>
+                      router.push(schoolCampaignInvitePath(campaign.id, campaign.title))
+                    }
+                  >
                     <Building className="w-4 h-4 mr-2" />
                     Inviter des entreprises
                   </Button>
@@ -355,7 +362,12 @@ export default function SchoolCampaignDetailsPage() {
                   <Building className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                   <h3 className="text-gray-600 font-medium mb-1">Aucune entreprise participante</h3>
                   <p className="text-gray-500 mb-4">Commencez par inviter des entreprises à participer à votre campagne.</p>
-                  <Button size="sm">
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      router.push(schoolCampaignInvitePath(campaign.id, campaign.title))
+                    }
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Inviter des entreprises
                   </Button>

@@ -35,3 +35,8 @@ export function schoolCampaignEditPath(id: string, title?: string) {
   const slug = slugify(title || "campagne");
   return `/campaigns/school/${slug}/edit?id=${id}`;
 }
+
+export function schoolCampaignInvitePath(id: string, title?: string) {
+  const slug = slugify(title || "campagne");
+  return `/campaigns/school/${slug}/invite?id=${id}`;
+}

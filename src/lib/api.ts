@@ -207,6 +207,8 @@ export const jobOpenings = {
 export const invitations = {
   create: (campaignId: string, companyId: string) =>
     campaignApi.post(`/campaigns/${campaignId}/invitations`, { companyId }),
+  listByCampaign: (campaignId: string) =>
+    campaignApi.get(`/campaigns/${campaignId}/invitations`),
   getByToken: (token: string) => campaignApi.get(`/invitations/${token}`),
   getByCompany: (companyId: string) =>
     campaignApi.get(`/companies/${companyId}/invitations`),

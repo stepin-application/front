@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import StatusBadge from '@/components/campaigns/StatusBadge';
 import { toast } from 'sonner';
 import { getServiceUrl } from "@/config/api.config";
-import { campaignParticipantsPath, schoolCampaignEditPath } from '@/lib/utils';
+import { campaignParticipantsPath, schoolCampaignEditPath, schoolCampaignInvitePath } from '@/lib/utils';
 
 interface Campaign {
   id: string;
@@ -142,6 +142,10 @@ export default function SchoolCampaignsPage() {
                   <Button variant="outline" size="sm" disabled={campaign.status === 'LOCKED'} onClick={() => router.push(schoolCampaignEditPath(campaign.id, campaign.title))}>
                     <Edit className="w-4 h-4 mr-1" />
                     Éditer
+                  </Button>
+                  <Button variant="outline" size="sm" disabled={campaign.status === 'LOCKED'} onClick={() => router.push(schoolCampaignInvitePath(campaign.id, campaign.title))}>
+                    <Users className="w-4 h-4 mr-1" />
+                    Inviter
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => router.push(campaignParticipantsPath(campaign.id, campaign.title))}>
                     <Users className="w-4 h-4 mr-1" />
