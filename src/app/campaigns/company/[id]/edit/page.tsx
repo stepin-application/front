@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
+import { jobOpenings } from "@/lib/api";
 
 export default function EditCompanyJobPage() {
   const { id } = useParams();
@@ -37,22 +38,17 @@ export default function EditCompanyJobPage() {
 
   const fetchJob = async () => {
     try {
-      const response = await fetch(`/api/job-openings/${id}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (!response.ok) throw new Error('Failed');
-      
-      const data = await response.json();
+      const data = await jobOpenings.getById(String(id));
       setFormData({
-        title: data.title,
-        description: data.description,
-        contractType: data.contractType,
-        duration: data.duration,
+        title: data.title || '',
+        description: data.description || '',
+        contractType: data.contractType || '',
+        duration: data.duration || '',
         startDate: data.startDate?.split('T')[0] || '',
         endDate: data.endDate?.split('T')[0] || '',
-        location: data.location,
+        location: data.location || '',
         maxParticipants: data.maxParticipants?.toString() || '',
-        requirements: data.requirements || [''],
+        requirements: data.requirements ? [data.requirements] : [''],
         benefits: data.benefits || [''],
         tags: data.tags || ['']
       });
@@ -73,19 +69,11 @@ export default function EditCompanyJobPage() {
     e.preventDefault();
     
     try {
-      const response = await fetch(`/api/job-openings/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(formData)
+      await jobOpenings.updateById(String(id), {
+        title: formData.title,
+        description: formData.description,
+        requirements: formData.requirements.filter(Boolean).join('\n')
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
 
       toast.success('Offre mise à jour !');
       router.push('/campaigns/company/me');

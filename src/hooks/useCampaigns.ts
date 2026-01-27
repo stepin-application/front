@@ -1,19 +1,8 @@
 import { useState, useCallback } from 'react';
-import { campaigns, invitations } from '@/lib/api';
+import { campaigns, invitations, directory } from '@/lib/api';
 import { handleApiError } from '@/lib/errorHandler';
 import { toast } from 'sonner';
-
-interface Campaign {
-  id: string;
-  schoolId: string;
-  name: string;
-  description: string;
-  deadline: string;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  lockedAt?: string;
-}
+import { Campaign } from '@/types/campaign';
 
 interface CreateCampaignData {
   schoolId: string;
@@ -43,12 +32,59 @@ export function useCampaigns(): UseCampaignsReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const loadSchoolsMap = async (): Promise<Record<string, string>> => {
+    try {
+      const data = await directory.getSchools();
+      if (!Array.isArray(data)) return {};
+      return data.reduce((acc: Record<string, string>, school: any) => {
+        if (school?.id) acc[school.id] = school.name || 'École partenaire';
+        return acc;
+      }, {});
+    } catch {
+      return {};
+    }
+  };
+
+  const mapCampaign = (campaign: any, schoolsMap: Record<string, string>): Campaign => {
+    const schoolId = campaign?.schoolId || '';
+    return {
+      id: campaign?.id,
+      title: campaign?.name ?? campaign?.title ?? 'Campagne',
+      description: campaign?.description ?? '',
+      companyDeadline: campaign?.deadline ?? '',
+      studentDeadline: campaign?.deadline ?? '',
+      startDate: campaign?.createdAt ?? '',
+      endDate: campaign?.deadline ?? '',
+      location: campaign?.location ?? '—',
+      status: campaign?.status ?? 'OPEN',
+      maxParticipants: campaign?.maxParticipants ?? undefined,
+      participants: campaign?.participants ?? 0,
+      type: 'school',
+      target: campaign?.target ?? 'students',
+      createdBy: {
+        id: schoolId,
+        name: schoolsMap[schoolId] || 'École partenaire',
+        logo: ''
+      },
+      invitedCompanyEmails: [],
+      respondedCompanies: [],
+      tags: Array.isArray(campaign?.tags) ? campaign.tags : [],
+      requirements: Array.isArray(campaign?.requirements) ? campaign.requirements : [],
+      benefits: Array.isArray(campaign?.benefits) ? campaign.benefits : [],
+      image: campaign?.image,
+      createdAt: campaign?.createdAt,
+      updatedAt: campaign?.updatedAt
+    };
+  };
+
   const loadCampaigns = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const data = await campaigns.getAll();
-      setCampaignsList(data || []);
+      const schoolsMap = await loadSchoolsMap();
+      const list = Array.isArray(data) ? data.map((c) => mapCampaign(c, schoolsMap)) : [];
+      setCampaignsList(list);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur de chargement';
       setError(errorMessage);
@@ -64,7 +100,9 @@ export function useCampaigns(): UseCampaignsReturn {
       setLoading(true);
       setError(null);
       const data = await campaigns.getActiveCampaigns();
-      setCampaignsList(data || []);
+      const schoolsMap = await loadSchoolsMap();
+      const list = Array.isArray(data) ? data.map((c) => mapCampaign(c, schoolsMap)) : [];
+      setCampaignsList(list);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur de chargement';
       setError(errorMessage);
@@ -97,8 +135,9 @@ export function useCampaigns(): UseCampaignsReturn {
       }
 
       const campaign = await campaigns.create(data);
+      const schoolsMap = await loadSchoolsMap();
       toast.success('Campagne créée avec succès');
-      return campaign;
+      return mapCampaign(campaign, schoolsMap);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la création';
       setError(errorMessage);
@@ -119,7 +158,8 @@ export function useCampaigns(): UseCampaignsReturn {
       }
 
       const campaign = await campaigns.getById(id);
-      return campaign;
+      const schoolsMap = await loadSchoolsMap();
+      return mapCampaign(campaign, schoolsMap);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur de chargement';
       setError(errorMessage);
@@ -157,8 +197,9 @@ export function useCampaigns(): UseCampaignsReturn {
       }
 
       const campaign = await campaigns.update(id, data);
+      const schoolsMap = await loadSchoolsMap();
       toast.success('Campagne mise à jour');
-      return campaign;
+      return mapCampaign(campaign, schoolsMap);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur de mise à jour';
       setError(errorMessage);

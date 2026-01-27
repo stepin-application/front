@@ -3,35 +3,30 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Calendar, MapPin, Building, CheckCircle, XCircle, Clock, Plus } from 'lucide-react';
+import { Calendar, Building, CheckCircle, XCircle, Clock, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import StatusBadge from '@/components/campaigns/StatusBadge';
 import DeadlineWarning from '@/components/campaigns/DeadlineWarning';
+import { invitations as invitationsApi, directory } from "@/lib/api";
+import { campaignPath } from "@/lib/utils";
 
 type InvitationStatus = 'INVITED' | 'ACCEPTED' | 'REFUSED';
 
 interface Invitation {
   id: string;
-  token: string;
+  token?: string;
   status: InvitationStatus;
   invitedAt: string;
   respondedAt?: string;
   campaign: {
     id: string;
-    title: string;
+    name: string;
     description: string;
     deadline: string;
-    startDate: string;
-    endDate: string;
-    location: string;
     status: 'OPEN' | 'LOCKED';
-    school: {
-      id: string;
-      name: string;
-      logo: string;
-    };
+    schoolId: string;
   };
   jobOpeningsCount?: number;
 }
@@ -48,17 +43,31 @@ export default function CompanyInvitationsPage() {
 
   const fetchInvitations = async () => {
     try {
-      // TODO: Remplacer par vrai appel API
-      const response = await fetch('/api/companies/me/invitations', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      
-      if (!response.ok) throw new Error('Failed to fetch invitations');
-      
-      const data = await response.json().catch(() => []);
-      setInvitations(Array.isArray(data) ? data : []);
+      const storedUser = localStorage.getItem('user');
+      const companyId = storedUser ? JSON.parse(storedUser)?.companyId : null;
+      if (!companyId) throw new Error('Missing company id');
+
+      const [data, schools] = await Promise.all([
+        invitationsApi.getByCompany(companyId),
+        directory.getSchools().catch(() => []),
+      ]);
+
+      const schoolsMap = Array.isArray(schools)
+        ? schools.reduce((acc: Record<string, string>, school: any) => {
+            if (school?.id) acc[school.id] = school.name || 'École partenaire';
+            return acc;
+          }, {})
+        : {};
+
+      const list = Array.isArray(data) ? data : [];
+      const mapped = list.map((invitation: any) => ({
+        ...invitation,
+        campaign: {
+          ...invitation.campaign,
+          schoolId: schoolsMap[invitation.campaign?.schoolId] || 'École partenaire',
+        },
+      }));
+      setInvitations(mapped);
     } catch (error) {
       console.error('Error fetching invitations:', error);
     } finally {
@@ -187,28 +196,24 @@ export default function CompanyInvitationsPage() {
                               <StatusIcon className="w-3 h-3" />
                               {statusConfig.label}
                             </Badge>
-                            <StatusBadge status={invitation.campaign.status} />
-                          </div>
-                          <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                            {invitation.campaign.title}
-                          </h3>
-                          <p className="text-sm text-gray-600 mb-2">
-                            Invitation de <strong>{invitation.campaign.school.name}</strong>
-                          </p>
-                          <div className="flex items-center gap-4 text-sm text-gray-500">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-4 h-4" />
-                              <span>
-                                {new Date(invitation.campaign.startDate).toLocaleDateString('fr-FR')} - {new Date(invitation.campaign.endDate).toLocaleDateString('fr-FR')}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-4 h-4" />
-                              <span>{invitation.campaign.location}</span>
-                            </div>
+                          <StatusBadge status={invitation.campaign.status} />
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                            {invitation.campaign.name}
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-2">
+                            Invitation de <strong>{invitation.campaign.schoolId}</strong>
+                        </p>
+                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            <span>
+                                Deadline : {new Date(invitation.campaign.deadline).toLocaleDateString('fr-FR')}
+                            </span>
                           </div>
                         </div>
                       </div>
+                    </div>
                     </div>
 
                     {invitation.status === 'INVITED' && (
@@ -229,12 +234,12 @@ export default function CompanyInvitationsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => router.push(`/campaigns/${invitation.campaign.id}`)}
+                        onClick={() => router.push(campaignPath(invitation.campaign.id, invitation.campaign.name))}
                       >
                         Voir détails
                       </Button>
                       
-                      {invitation.status === 'INVITED' && canRespond && (
+                      {invitation.status === 'INVITED' && canRespond && invitation.token && (
                         <Button
                           size="sm"
                           onClick={() => router.push(`/invitation/${invitation.token}`)}
@@ -247,7 +252,7 @@ export default function CompanyInvitationsPage() {
                       {invitation.status === 'ACCEPTED' && invitation.campaign.status === 'OPEN' && !isDeadlinePassed && (
                         <Button
                           size="sm"
-                          onClick={() => router.push(`/campaigns/company/new?invitationId=${invitation.token}&campaignId=${invitation.campaign.id}`)}
+                          onClick={() => router.push(`/campaigns/company/new?campaignId=${invitation.campaign.id}`)}
                         >
                           <Plus className="w-4 h-4 mr-1" />
                           Ajouter un poste

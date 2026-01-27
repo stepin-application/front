@@ -1,7 +1,7 @@
 "use client"
 
-import { useParams } from 'next/navigation';
-import { campaignsData } from '@/data/campaignsData';
+import { useParams, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Calendar, MapPin, Users, Building, GraduationCap, CheckCircle2, Clock, XCircle, Share2, BookmarkPlus, MessageCircle, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
@@ -10,11 +10,80 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from '@/contexts/AuthContext';
+import { campaigns, directory } from "@/lib/api";
+import { Campaign } from "@/types/campaign";
+import { campaignApplyPath, campaignParticipantsPath, schoolCampaignEditPath } from "@/lib/utils";
 
 export default function CampaignDetailsPage() {
-  const { id } = useParams();
+  const { id: pathId } = useParams();
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id') || (pathId as string);
   const { user, isAuthenticated } = useAuth();
-  const campaign = campaignsData.find(c => c.id === id);
+  const [campaign, setCampaign] = useState<Campaign | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+    const fetchCampaign = async () => {
+      try {
+        const [campaignData, schools] = await Promise.all([
+          campaigns.getById(String(id)),
+          directory.getSchools().catch(() => []),
+        ]);
+
+        const schoolsMap = Array.isArray(schools)
+          ? schools.reduce((acc: Record<string, string>, school: any) => {
+              if (school?.id) acc[school.id] = school.name || 'École partenaire';
+              return acc;
+            }, {})
+          : {};
+
+        const schoolId = campaignData?.schoolId || '';
+        const mapped: Campaign = {
+          id: campaignData?.id,
+          title: campaignData?.name ?? campaignData?.title ?? 'Campagne',
+          description: campaignData?.description ?? '',
+          companyDeadline: campaignData?.deadline ?? '',
+          studentDeadline: campaignData?.deadline ?? '',
+          startDate: campaignData?.createdAt ?? '',
+          endDate: campaignData?.deadline ?? '',
+          location: campaignData?.location ?? '—',
+          status: campaignData?.status ?? 'OPEN',
+          maxParticipants: campaignData?.maxParticipants ?? undefined,
+          participants: campaignData?.participants ?? 0,
+          type: 'school',
+          target: 'students',
+          createdBy: {
+            id: schoolId,
+            name: schoolsMap[schoolId] || 'École partenaire',
+            logo: ''
+          },
+          invitedCompanyEmails: [],
+          respondedCompanies: [],
+          tags: Array.isArray(campaignData?.tags) ? campaignData.tags : [],
+          requirements: Array.isArray(campaignData?.requirements) ? campaignData.requirements : [],
+          benefits: Array.isArray(campaignData?.benefits) ? campaignData.benefits : [],
+          image: campaignData?.image
+        };
+        setCampaign(mapped);
+      } catch (error) {
+        console.error('Erreur lors du chargement de la campagne:', error);
+        setCampaign(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCampaign();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
 
   if (!campaign) {
     return (
@@ -43,13 +112,19 @@ export default function CampaignDetailsPage() {
     const styles = {
       active: 'bg-green-50 text-green-700 border-green-100',
       upcoming: 'bg-blue-50 text-blue-700 border-blue-100', 
-      closed: 'bg-gray-50 text-gray-700 border-gray-100'
+      closed: 'bg-gray-50 text-gray-700 border-gray-100',
+      OPEN: 'bg-green-50 text-green-700 border-green-100',
+      LOCKED: 'bg-gray-50 text-gray-700 border-gray-100',
+      CLOSED: 'bg-gray-50 text-gray-700 border-gray-100'
     }[status];
 
     const text = {
       active: 'Active',
       upcoming: 'À venir',
-      closed: 'Terminée'
+      closed: 'Terminée',
+      OPEN: 'Active',
+      LOCKED: 'Terminée',
+      CLOSED: 'Terminée'
     }[status];
 
     return (
@@ -62,7 +137,7 @@ export default function CampaignDetailsPage() {
   // Vérifier si l'utilisateur peut candidater
   const canApply = () => {
     if (!isAuthenticated || user?.role !== 'student') return false;
-    if (campaign.status !== 'active') return false;
+    if (campaign.status !== 'active' && campaign.status !== 'OPEN') return false;
     if (campaign.target !== 'students' && campaign.target !== 'both') return false;
     
     // Vérifier si la deadline étudiante est passée
@@ -144,29 +219,38 @@ export default function CampaignDetailsPage() {
               {user?.role === 'student' && (
                 <>
                   {canApply() ? (
-                    <Link href={`/campaigns/${campaign.id}/apply`}>
+                    <Link href={campaignApplyPath(campaign.id, campaign.title)}>
                       <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
                         Candidater
                       </Button>
                     </Link>
                   ) : (
                     <Button size="sm" disabled className="opacity-50">
-                      {campaign.status !== 'active' ? 'Campagne fermée' :
-                       daysUntilDeadline < 0 ? 'Deadline dépassée' : 'Non éligible'}
+                      {campaign.status !== 'active' && campaign.status !== 'OPEN'
+                        ? 'Campagne fermée'
+                        : daysUntilDeadline < 0
+                          ? 'Deadline dépassée'
+                          : 'Non éligible'}
                     </Button>
                   )}
                 </>
               )}
 
               {/* Boutons pour propriétaires de campagne */}
-              {isOwnCampaign() && (
+              {isOwnCampaign() && user?.role !== 'student' && (
                 <div className="flex gap-2">
-                  <Link href={`/campaigns/${campaign.type}/${campaign.id}/edit`}>
+                  <Link
+                    href={
+                      campaign.type === 'school'
+                        ? schoolCampaignEditPath(campaign.id, campaign.title)
+                        : schoolCampaignEditPath(campaign.id, campaign.title)
+                    }
+                  >
                     <Button variant="outline" size="sm">
                       Modifier
                     </Button>
                   </Link>
-                  <Link href={`/campaigns/${campaign.id}/participants`}>
+                  <Link href={campaignParticipantsPath(campaign.id, campaign.title)}>
                     <Button size="sm">
                       Voir les candidatures
                     </Button>

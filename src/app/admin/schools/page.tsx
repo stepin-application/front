@@ -143,7 +143,6 @@ export default function AdminSchoolsPage() {
                     <span className="text-gray-900 dark:text-gray-100">
                       {school.name}
                     </span>
-                    <div className="text-xs text-gray-500">{school.id}</div>
                   </div>
                   <div className="flex items-center gap-2">
                     <button

@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Campaign, StudentApplication, Notification } from '@/types/campaign'
-import { api } from '@/lib/api'
+import { campaigns, directory } from '@/lib/api'
+import { campaignPath } from '@/lib/utils'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { 
@@ -55,30 +56,56 @@ export default function StudentDashboard() {
 
     const fetchDashboardData = async () => {
       try {
-        const [statsRes, campaignsRes, applicationsRes, notificationsRes] = await Promise.allSettled([
-          api.get('/students/stats'),
-          api.get('/students/recommended-campaigns'),
-          api.get('/students/recent-applications'),
-          api.get('/students/notifications')
-        ])
+        const schools = await directory.getSchools().catch(() => [])
+        const schoolsMap = Array.isArray(schools)
+          ? schools.reduce((acc: Record<string, string>, school: any) => {
+              if (school?.id) acc[school.id] = school.name || 'École partenaire'
+              return acc
+            }, {})
+          : {}
 
-        const unwrap = (res: any) => (res && typeof res === 'object' && 'data' in res ? res.data : res)
+        let campaignsValue: any[] = []
+        try {
+          const active = await campaigns.getActiveCampaigns()
+          campaignsValue = Array.isArray(active) ? active : []
+        } catch {
+          const all = await campaigns.getAll()
+          campaignsValue = Array.isArray(all) ? all : []
+        }
 
-        const statsValue = statsRes.status === 'fulfilled' ? unwrap(statsRes.value) : null
-        const campaignsValue = campaignsRes.status === 'fulfilled' ? unwrap(campaignsRes.value) : []
-        const applicationsValue = applicationsRes.status === 'fulfilled' ? unwrap(applicationsRes.value) : []
-        const notificationsValue = notificationsRes.status === 'fulfilled' ? unwrap(notificationsRes.value) : []
+        const mappedCampaigns: Campaign[] = campaignsValue.map((campaign: any) => ({
+          id: campaign.id,
+          title: campaign.name ?? campaign.title ?? 'Campagne',
+          description: campaign.description ?? '',
+          companyDeadline: campaign.deadline ?? '',
+          studentDeadline: campaign.deadline ?? '',
+          startDate: campaign.createdAt ?? '',
+          endDate: campaign.deadline ?? '',
+          location: campaign.location ?? '—',
+          status: campaign.status ?? 'OPEN',
+          participants: 0,
+          type: 'school',
+          target: 'students',
+          createdBy: {
+            id: campaign.schoolId ?? '',
+            name: schoolsMap[campaign.schoolId] || 'École partenaire',
+            logo: ''
+          },
+          invitedCompanyEmails: [],
+          respondedCompanies: [],
+          tags: []
+        }))
 
         setStats({
-          totalApplications: Number(statsValue?.totalApplications ?? 0),
-          pendingApplications: Number(statsValue?.pendingApplications ?? 0),
-          acceptedApplications: Number(statsValue?.acceptedApplications ?? 0),
-          rejectedApplications: Number(statsValue?.rejectedApplications ?? 0),
-          newCampaigns: Number(statsValue?.newCampaigns ?? 0)
+          totalApplications: 0,
+          pendingApplications: 0,
+          acceptedApplications: 0,
+          rejectedApplications: 0,
+          newCampaigns: mappedCampaigns.length
         })
-        setRecommendedCampaigns(Array.isArray(campaignsValue) ? campaignsValue.slice(0, 4) : [])
-        setRecentApplications(Array.isArray(applicationsValue) ? applicationsValue.slice(0, 5) : [])
-        setNotifications(Array.isArray(notificationsValue) ? notificationsValue.slice(0, 3) : [])
+        setRecommendedCampaigns(mappedCampaigns.slice(0, 4))
+        setRecentApplications([])
+        setNotifications([])
       } catch (error) {
         console.error('Erreur lors du chargement du dashboard:', error)
       } finally {
@@ -247,7 +274,7 @@ export default function StudentDashboard() {
                           </div>
                           <div className="ml-4">
                             <Link
-                              href={`/campaigns/${campaign.id}`}
+                              href={campaignPath(campaign.id, campaign.title)}
                               className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
                             >
                               Voir détails

@@ -1,7 +1,9 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { getServiceUrl } from '@/config/api.config';
 import { ArrowLeft, Upload, Plus, Trash2, Info, Search, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
@@ -14,11 +16,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from 'sonner';
 
 export default function EditSchoolCampaignPage() {
-  const { id } = useParams();
+  const { id: pathId } = useParams();
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id') || (pathId as string);
   const router = useRouter();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [campaignStatus, setCampaignStatus] = useState<'OPEN' | 'LOCKED'>('OPEN');
   const [deadline, setDeadline] = useState('');
+  const campaignBase = getServiceUrl("campaign");
   
   const [formData, setFormData] = useState({
     title: '',
@@ -38,19 +44,23 @@ export default function EditSchoolCampaignPage() {
   const [selectedCompanies, setSelectedCompanies] = useState<Company[]>([]);
 
   useEffect(() => {
+    if (!user || user.role !== 'school') {
+      router.push('/');
+      return;
+    }
     fetchCampaign();
-  }, [id]);
+  }, [id, user, router]);
 
   const fetchCampaign = async () => {
     try {
-      const response = await fetch(`/api/campaigns/${id}`, {
+      const response = await fetch(`${campaignBase}/campaigns/${id}`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (!response.ok) throw new Error('Failed to fetch campaign');
       
       const data = await response.json().catch(() => ({}));
       setFormData({
-        title: data?.title || '',
+        title: data?.name || data?.title || '',
         description: data?.description || '',
         startDate: data?.startDate ? data.startDate.split('T')[0] : '',
         endDate: data?.endDate ? data.endDate.split('T')[0] : '',

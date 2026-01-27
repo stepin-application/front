@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Campaign, JobOpening } from '@/types/campaign'
 import { jobOpeningApi, campaigns, api } from '@/lib/api'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
+import { slugify } from '@/lib/utils'
 import { 
   Upload, 
   FileText, 
@@ -30,7 +31,8 @@ export default function ApplyToCampaign() {
   const { user } = useAuth()
   const router = useRouter()
   const params = useParams()
-  const campaignId = params.id as string
+  const searchParams = useSearchParams()
+  const campaignId = (searchParams.get('id') || (params.id as string)) as string
 
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -169,7 +171,9 @@ export default function ApplyToCampaign() {
       })
 
       // Rediriger vers la page de confirmation
-      router.push(`/campaigns/${campaignId}/apply/success`)
+      const slug = slugify(campaign?.title || 'campagne')
+      const successPath = `/campaigns/${slug}/apply/success?id=${campaignId}`
+      router.push(successPath)
     } catch (error: any) {
       console.error('Erreur lors de l\'envoi de la candidature:', error)
       setErrors({ submit: error.response?.data?.message || 'Une erreur est survenue lors de l\'envoi' })

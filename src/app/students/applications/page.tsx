@@ -66,7 +66,13 @@ export default function StudentApplications() {
         const list = Array.isArray(data) ? data : []
         setApplications(list)
         setFilteredApplications(list)
-      } catch (error) {
+      } catch (error: any) {
+        const message = error?.message || ''
+        if (message.includes('No static resource') || message.includes('HTTP 404')) {
+          setApplications([])
+          setFilteredApplications([])
+          return
+        }
         console.error('Erreur lors du chargement des candidatures:', error)
         setApplications([])
         setFilteredApplications([])

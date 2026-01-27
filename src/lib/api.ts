@@ -143,6 +143,9 @@ export const jobOpenings = {
       `/campaigns/${campaignId}/companies/${companyId}/job-openings`,
       data,
     ),
+  getByCompany: (companyId: string) =>
+    jobApi.get(`/companies/${companyId}/job-openings`),
+  getById: (jobId: string) => jobApi.get(`/job-openings/${jobId}`),
   getAll: (params?: {
     campaignId?: string;
     companyId?: string;
@@ -166,11 +169,14 @@ export const jobOpenings = {
       }`,
     );
   },
+  updateById: (jobId: string, data: any) =>
+    jobApi.put(`/job-openings/${jobId}`, data),
   update: (campaignId: string, companyId: string, jobId: string, data: any) =>
     jobApi.put(
       `/campaigns/${campaignId}/companies/${companyId}/job-openings/${jobId}`,
       data,
     ),
+  deleteById: (jobId: string) => jobApi.delete(`/job-openings/${jobId}`),
   delete: (campaignId: string, companyId: string, jobId: string) =>
     jobApi.delete(
       `/campaigns/${campaignId}/companies/${companyId}/job-openings/${jobId}`,
@@ -201,6 +207,8 @@ export const invitations = {
   create: (campaignId: string, companyId: string) =>
     campaignApi.post(`/campaigns/${campaignId}/invitations`, { companyId }),
   getByToken: (token: string) => campaignApi.get(`/invitations/${token}`),
+  getByCompany: (companyId: string) =>
+    campaignApi.get(`/companies/${companyId}/invitations`),
   accept: (campaignId: string, companyId: string) =>
     campaignApi.post(
       `/campaigns/${campaignId}/companies/${companyId}/accept`,
@@ -211,6 +219,11 @@ export const invitations = {
       `/campaigns/${campaignId}/companies/${companyId}/refuse`,
       {},
     ),
+};
+
+export const directory = {
+  getSchools: () => campaignApi.get("/admin/schools"),
+  getCompanies: () => campaignApi.get("/admin/companies"),
 };
 
 // Authentication - Service Auth (port 8083) - À implémenter

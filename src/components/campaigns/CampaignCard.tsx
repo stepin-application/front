@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Campaign } from '@/types/campaign';
 import Link from 'next/link';
+import { campaignPath } from '@/lib/utils';
 
 interface CampaignCardProps {
   campaign: Campaign;
@@ -124,8 +125,8 @@ export default function CampaignCard({ campaign, isAuthenticated = false, userRo
             </Badge>
           )}
         </div>
-        {campaign.status === 'active' && (
-          <Link href={`/campaigns/${campaign.id}`} className="w-full sm:w-auto">
+        {(campaign.status === 'active' || campaign.status === 'OPEN') && (
+          <Link href={campaignPath(campaign.id, campaign.title)} className="w-full sm:w-auto">
             <Button className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-xs sm:text-sm">
               Voir la campagne
             </Button>

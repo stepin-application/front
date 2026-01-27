@@ -22,9 +22,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
 
 // Types
-type FilterType = "all" | "company" | "school";
 type FilterStatus = "all" | "active" | "closed" | "upcoming";
-type FilterTarget = "all" | "students" | "companies" | "both";
 
 // Composants
 const StatCard = ({
@@ -125,13 +123,9 @@ export default function CampaignsPage() {
   // État
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<{
-    type: FilterType;
     status: FilterStatus;
-    target: FilterTarget;
   }>({
-    type: "all",
     status: "all",
-    target: "all",
   });
 
   const [visibleItems, setVisibleItems] = useState(8);
@@ -170,25 +164,10 @@ export default function CampaignsPage() {
           ?.toLowerCase()
           .includes(searchQuery.toLowerCase());
 
-      const matchesType =
-        filters.type === "all" || campaign.type === filters.type;
       const matchesStatus =
         filters.status === "all" || campaign.status === filters.status;
-      const matchesTarget =
-        filters.target === "all" || campaign.target === filters.target;
 
-      // Pour les étudiants, ne montrer que les campagnes ouvertes aux étudiants
-      if (user?.role === "student") {
-        return (
-          matchesSearch &&
-          matchesType &&
-          matchesStatus &&
-          (campaign.target === "students" || campaign.target === "both") &&
-          campaign.status === "active"
-        );
-      }
-
-      return matchesSearch && matchesType && matchesStatus && matchesTarget;
+      return matchesSearch && matchesStatus;
     });
   }, [searchQuery, filters, isAuthenticated, user, campaignsList]);
 
@@ -208,7 +187,7 @@ export default function CampaignsPage() {
   // Gestionnaires d'événements
   const handleReset = () => {
     setSearchQuery("");
-    setFilters({ type: "all", status: "all", target: "all" });
+    setFilters({ status: "all" });
     setVisibleItems(8);
   };
 

@@ -27,7 +27,23 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const getStoredUser = () => {
+    if (typeof window === 'undefined') return null;
+    const storedUser = localStorage.getItem('user');
+    if (!storedUser) return null;
+    try {
+      const parsed = JSON.parse(storedUser);
+      const normalizedRole = normalizeRole(parsed.role);
+      return {
+        ...parsed,
+        role: normalizedRole,
+      } as User;
+    } catch {
+      return null;
+    }
+  };
+
+  const [user, setUser] = useState<User | null>(() => getStoredUser());
 
   const normalizeRole = (role: string | null | undefined): UserRole => {
     if (!role) return null;
@@ -40,16 +56,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Charger l'utilisateur depuis localStorage au démarrage
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const parsed = JSON.parse(storedUser);
-      setUser({
-        ...parsed,
-        role: normalizeRole(parsed.role),
-      });
+    // Charger l'utilisateur depuis localStorage au démarrage (si pas encore en état)
+    if (!user) {
+      const stored = getStoredUser();
+      if (stored) {
+        setUser(stored);
+      }
     }
-  }, []);
+    if (user?.role) {
+      document.cookie = `stepin_role=${user.role}; path=/; max-age=604800`;
+    }
+  }, [user]);
 
   const login = async (email: string, password: string) => {
     try {
@@ -76,6 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('token', data.token);
       localStorage.setItem('mustChangePassword', data.mustChangePassword ? 'true' : 'false');
+      if (userData.role) {
+        document.cookie = `stepin_role=${userData.role}; path=/; max-age=604800`;
+      }
       return { mustChangePassword: !!data.mustChangePassword };
     } catch (error) {
       console.error('Login error:', error);
@@ -87,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
+    document.cookie = 'stepin_role=; path=/; max-age=0';
   };
 
   const getToken = () => {

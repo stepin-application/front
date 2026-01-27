@@ -10,13 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
+import { jobOpenings } from "@/lib/api";
 
 function NewCompanyCampaignPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const invitationId = searchParams.get('invitationId');
   const campaignId = searchParams.get('campaignId');
-  const isInvitationResponse = !!invitationId;
+  const isInvitationResponse = !!campaignId;
 
   const [campaignInfo, setCampaignInfo] = useState<{ schoolName: string; campaignName: string } | null>(null);
   const [formData, setFormData] = useState({
@@ -35,10 +35,13 @@ function NewCompanyCampaignPageContent() {
   });
 
   useEffect(() => {
-    if (isInvitationResponse && campaignId) {
-      fetchCampaignInfo();
+    if (!campaignId) {
+      toast.error("Sélectionnez d'abord une campagne acceptée.");
+      router.push('/campaigns/company/invitations');
+      return;
     }
-  }, [isInvitationResponse, campaignId]);
+    fetchCampaignInfo();
+  }, [campaignId, router]);
 
   const fetchCampaignInfo = async () => {
     try {
@@ -46,8 +49,8 @@ function NewCompanyCampaignPageContent() {
       if (!response.ok) throw new Error('Failed to fetch campaign info');
       const data = await response.json().catch(() => ({}));
       setCampaignInfo({
-        schoolName: data?.school?.name || 'École',
-        campaignName: data?.title || 'Campagne'
+        schoolName: data?.school?.name || data?.schoolId || 'École',
+        campaignName: data?.name || data?.title || 'Campagne'
       });
     } catch (error) {
       console.error('Error fetching campaign info:', error);
@@ -73,37 +76,24 @@ function NewCompanyCampaignPageContent() {
     e.preventDefault();
     
     try {
-      let response;
-      
-      if (isInvitationResponse && campaignId) {
-        // Créer un job-opening pour une campagne école
-        response = await fetch(`/api/campaigns/${campaignId}/companies/job-openings`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify(formData)
-        });
-      } else {
-        // Ajouter un poste à une campagne ouverte
-        response = await fetch('/api/campaigns', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify(formData)
-        });
+      if (!campaignId) {
+        throw new Error('Missing campaign id');
       }
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create job opening');
+      const storedUser = localStorage.getItem('user');
+      const companyId = storedUser ? JSON.parse(storedUser)?.companyId : null;
+      if (!companyId) {
+        throw new Error('Missing company id');
       }
 
-      toast.success(isInvitationResponse ? 'Poste ajouté avec succès !' : 'Poste ajouté à la campagne avec succès !');
-      router.push(isInvitationResponse ? '/campaigns/company/invitations' : '/campaigns/company/me');
+      await jobOpenings.create(campaignId, companyId, {
+        title: formData.title,
+        description: formData.description,
+        requirements: formData.requirements.filter(Boolean).join('\n')
+      });
+
+      toast.success('Poste ajouté avec succès !');
+      router.push('/campaigns/company/me');
     } catch (error: any) {
       console.error('Error submitting form:', error);
       
@@ -163,13 +153,10 @@ function NewCompanyCampaignPageContent() {
 
         <div className="mb-8">
           <h1 className="text-2xl font-medium text-gray-900 mb-2">
-            {isInvitationResponse ? 'Ajouter vos postes' : 'Ajouter vos postes à la campagne'}
+            Ajouter vos postes
           </h1>
           <p className="text-gray-500">
-            {isInvitationResponse 
-              ? 'Proposez les postes que vous souhaitez offrir pour cet événement'
-              : 'Proposez vos offres d\'emploi et de stage pour cette campagne de recrutement'
-            }
+            Proposez les postes que vous souhaitez offrir pour cet événement
           </p>
         </div>
 
@@ -499,7 +486,7 @@ function NewCompanyCampaignPageContent() {
           {/* Submit */}
           <div className="pt-6 border-t">
             <Button type="submit" className="w-full">
-              {isInvitationResponse ? 'Ajouter le poste' : 'Ajouter le poste à la campagne'}
+              Ajouter le poste
             </Button>
           </div>
         </form>

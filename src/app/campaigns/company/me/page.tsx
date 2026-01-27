@@ -7,16 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import StatusBadge from '@/components/campaigns/StatusBadge';
 import { toast } from 'sonner';
+import { jobOpenings } from "@/lib/api";
 
 interface JobOpening {
   id: string;
+  campaignId?: string;
+  companyId?: string;
   title: string;
   description: string;
-  contractType: string;
-  duration: string;
-  location: string;
-  maxParticipants: number;
-  createdAt: string;
+  contractType?: string;
+  duration?: string;
+  location?: string;
+  maxParticipants?: number;
+  createdAt?: string;
   campaign?: {
     id: string;
     title: string;
@@ -37,15 +40,11 @@ export default function CompanyJobsPage() {
 
   const fetchJobs = async () => {
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
-      const response = await fetch('/api/companies/me/job-openings', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        signal: controller.signal
-      });
-      clearTimeout(timeout);
-      if (!response.ok) throw new Error('Failed to fetch jobs');
-      const data = await response.json().catch(() => []);
+      const storedUser = localStorage.getItem('user');
+      const companyId = storedUser ? JSON.parse(storedUser)?.companyId : null;
+      if (!companyId) throw new Error('Missing company id');
+
+      const data = await jobOpenings.getByCompany(companyId);
       setJobs(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error:', error);
@@ -59,15 +58,7 @@ export default function CompanyJobsPage() {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cette offre ?')) return;
     
     try {
-      const response = await fetch(`/api/job-openings/${jobId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
+      await jobOpenings.deleteById(jobId);
       
       toast.success('Offre supprimée');
       fetchJobs();

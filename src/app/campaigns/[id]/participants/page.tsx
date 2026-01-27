@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Building, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { getServiceUrl } from "@/config/api.config";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Participant {
   companyId: string;
@@ -22,7 +23,11 @@ interface Company {
 }
 
 export default function ParticipantsPage() {
-  const { id } = useParams();
+  const { id: pathId } = useParams();
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id') || (pathId as string);
+  const router = useRouter();
+  const { user } = useAuth();
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [campaignTitle, setCampaignTitle] = useState('');
@@ -30,8 +35,12 @@ export default function ParticipantsPage() {
   const [companyMap, setCompanyMap] = useState<Record<string, Company>>({});
 
   useEffect(() => {
+    if (!user || user.role !== 'school') {
+      router.push('/');
+      return;
+    }
     fetchParticipants();
-  }, [id]);
+  }, [id, user, router]);
 
   const fetchParticipants = async () => {
     try {
