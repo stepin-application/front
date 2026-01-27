@@ -55,7 +55,7 @@ async function retryRequest<T>(
 }
 
 // API générique pour un service spécifique
-function createApiClient(service: "campaign" | "job" | "auth") {
+function createApiClient(service: "campaign" | "job" | "auth" | "student") {
   const baseUrl = getServiceUrl(service);
 
   return {
@@ -118,6 +118,7 @@ function createApiClient(service: "campaign" | "job" | "auth") {
 export const campaignApi = createApiClient("campaign");
 export const jobApi = createApiClient("job");
 export const authApi = createApiClient("auth");
+export const studentApi = createApiClient("student");
 
 // Campagnes - Service Campaign (port 8082)
 export const campaigns = {
@@ -240,6 +241,40 @@ export const auth = {
     authApi.post("/auth/reset-password", { token, password }),
   verifyEmail: (token: string) => authApi.post("/auth/verify-email", { token }),
   getProfile: () => authApi.get("/auth/profile"),
+};
+
+// Student Profiles - Service Student (port 8084)
+export const studentProfiles = {
+  create: (data: any) => studentApi.post("/api/students/profile", data),
+  get: (studentId?: string) => 
+    studentApi.get(studentId ? `/api/students/${studentId}/profile` : "/api/students/me/profile"),
+  update: (data: any, studentId?: string) => 
+    studentApi.put(studentId ? `/api/students/${studentId}/profile` : "/api/students/me/profile", data),
+  delete: (studentId?: string) => 
+    studentApi.delete(studentId ? `/api/students/${studentId}/profile` : "/api/students/me/profile"),
+  exists: () => studentApi.get("/api/students/me/profile/exists"),
+  // Pour le matching AI - récupérer tous les profils d'une campagne
+  getByCampaign: (campaignId: string) => 
+    studentApi.get(`/api/campaigns/${campaignId}/students/profiles`),
+  // Récupérer tous les profils complétés pour l'AI matching
+  getCompleted: () => studentApi.get("/api/students/profiles/completed"),
+  // Récupérer profils par batch d'IDs (pour AI matching)
+  getByIds: (studentIds: string[]) => 
+    studentApi.post("/api/students/profiles/batch", studentIds),
+  // Recherche de profils avec filtres
+  search: (filters?: {
+    skill?: string;
+    location?: string;
+    jobType?: string;
+    graduationYear?: string;
+    school?: string;
+    completedOnly?: boolean;
+  }) => {
+    const params = filters ? "?" + new URLSearchParams(filters as any).toString() : "";
+    return studentApi.get(`/api/students/profiles/search${params}`);
+  },
+  // Statistiques des profils
+  getStats: () => studentApi.get("/api/students/profiles/stats"),
 };
 
 // Export pour compatibilité avec le code existant

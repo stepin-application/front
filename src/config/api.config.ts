@@ -4,6 +4,7 @@ export const API_CONFIG = {
   CAMPAIGN_SERVICE: process.env.NEXT_PUBLIC_CAMPAIGN_SERVICE_URL || 'http://localhost:8082',
   JOB_SERVICE: process.env.NEXT_PUBLIC_JOB_SERVICE_URL || 'http://localhost:8081',
   AUTH_SERVICE: process.env.NEXT_PUBLIC_AUTH_SERVICE_URL || 'http://localhost:8083',
+  STUDENT_SERVICE: process.env.NEXT_PUBLIC_STUDENT_SERVICE_URL || 'http://localhost:8084',
   
   // Configuration pour développement
   isDevelopment: process.env.NODE_ENV === 'development',
@@ -17,7 +18,7 @@ export const API_CONFIG = {
 };
 
 // Helper pour obtenir l'URL du bon service
-export function getServiceUrl(service: 'campaign' | 'job' | 'auth') {
+export function getServiceUrl(service: 'campaign' | 'job' | 'auth' | 'student') {
   switch (service) {
     case 'campaign':
       return API_CONFIG.CAMPAIGN_SERVICE;
@@ -25,6 +26,8 @@ export function getServiceUrl(service: 'campaign' | 'job' | 'auth') {
       return API_CONFIG.JOB_SERVICE;
     case 'auth':
       return API_CONFIG.AUTH_SERVICE;
+    case 'student':
+      return API_CONFIG.STUDENT_SERVICE;
     default:
       throw new Error(`Unknown service: ${service}`);
   }
