@@ -50,6 +50,15 @@ export default function ApplyToCampaign() {
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
 
+  const getCompanyIdsForCampaign = (campaignData: Campaign): string[] => {
+    const createdBy = campaignData.createdBy as Campaign['createdBy']
+    if (createdBy && 'industry' in createdBy) {
+      return [createdBy.id]
+    }
+    const responded = campaignData.respondedCompanies?.map((company) => company.id) || []
+    return responded.filter(Boolean)
+  }
+
   useEffect(() => {
     if (!user || user.role !== 'student') {
       router.push('/login')
@@ -70,10 +79,16 @@ export default function ApplyToCampaign() {
 
     const fetchCampaignData = async () => {
       try {
-        const [campaignRes, jobOpeningsRes] = await Promise.all([
-          campaigns.getById(campaignId),
-          jobOpeningApi.getAll({ campaignId })
-        ])
+        const campaignRes = await campaigns.getById(campaignId)
+        const companyIds = getCompanyIdsForCampaign(campaignRes)
+
+        let jobOpeningsRes: JobOpening[] = []
+        if (companyIds.length > 0) {
+          const lists = await Promise.all(
+            companyIds.map((companyId) => jobOpeningApi.getAll({ campaignId, companyId }))
+          )
+          jobOpeningsRes = lists.flat()
+        }
 
         setCampaign(campaignRes)
         setJobOpenings(jobOpeningsRes)
@@ -162,6 +177,12 @@ export default function ApplyToCampaign() {
       return
     }
 
+    const selectedJob = jobOpenings.find(job => job.id === form.jobOpeningId)
+    if (!selectedJob?.company?.id) {
+      setErrors({ submit: 'Impossible de déterminer l\'entreprise associée à ce poste.' })
+      return
+    }
+
     setSubmitting(true)
 
     try {
@@ -178,7 +199,7 @@ export default function ApplyToCampaign() {
         formData.append(`additionalDocument_${index}`, file)
       })
 
-      await jobOpeningApi.apply(form.jobOpeningId, {
+      await jobOpeningApi.apply(campaignId, selectedJob.company.id, form.jobOpeningId, {
         candidateInfo: {
           coverLetter: form.coverLetter
         },
@@ -525,7 +546,7 @@ export default function ApplyToCampaign() {
               <div className="space-y-3">
                 <div className="flex items-center text-sm">
                   <Building className="w-4 h-4 text-gray-500 mr-2" />
-                  <span className="text-gray-900">{campaign.createdBy.name}</span>
+                  <span className="text-gray-900">{campaign.createdBy?.name || 'Entreprise'}</span>
                 </div>
                 <div className="flex items-center text-sm">
                   <MapPin className="w-4 h-4 text-gray-500 mr-2" />
