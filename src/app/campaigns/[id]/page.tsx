@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from '@/contexts/AuthContext';
-import { campaigns, directory } from "@/lib/api";
+import { campaigns, directory, invitations as invitationsApi } from "@/lib/api";
 import { Campaign } from "@/types/campaign";
 import { campaignApplyPath, campaignParticipantsPath, schoolCampaignEditPath } from "@/lib/utils";
 
@@ -21,6 +21,8 @@ export default function CampaignDetailsPage() {
   const { user, isAuthenticated } = useAuth();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [loading, setLoading] = useState(true);
+  const [invitationStatus, setInvitationStatus] = useState<'INVITED' | 'ACCEPTED' | 'REFUSED' | null>(null);
+  const [responding, setResponding] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -66,6 +68,13 @@ export default function CampaignDetailsPage() {
           image: campaignData?.image
         };
         setCampaign(mapped);
+        if (user?.role === 'company' && user.companyId) {
+          const invitations = await invitationsApi.getByCompany(user.companyId).catch(() => []);
+          if (Array.isArray(invitations)) {
+            const found = invitations.find((inv: any) => inv.campaignId === mapped.id);
+            setInvitationStatus(found?.status || null);
+          }
+        }
       } catch (error) {
         console.error('Erreur lors du chargement de la campagne:', error);
         setCampaign(null);
@@ -75,7 +84,7 @@ export default function CampaignDetailsPage() {
     };
 
     fetchCampaign();
-  }, [id]);
+  }, [id, user]);
 
   if (loading) {
     return (
@@ -169,6 +178,36 @@ export default function CampaignDetailsPage() {
 
   const daysUntilDeadline = getDaysUntilDeadline();
 
+  const canRespondToInvitation = () => {
+    if (!user || user.role !== 'company') return false;
+    if (!invitationStatus || invitationStatus !== 'INVITED') return false;
+    if (campaign.status !== 'OPEN' && campaign.status !== 'active') return false;
+    const deadline = new Date((campaign as any).companyDeadline || (campaign as any).endDate);
+    return new Date() <= deadline;
+  };
+
+  const handleAcceptInvitation = async () => {
+    if (!user?.companyId || !campaign?.id) return;
+    setResponding(true);
+    try {
+      await invitationsApi.accept(campaign.id, user.companyId);
+      setInvitationStatus('ACCEPTED');
+    } finally {
+      setResponding(false);
+    }
+  };
+
+  const handleRefuseInvitation = async () => {
+    if (!user?.companyId || !campaign?.id) return;
+    setResponding(true);
+    try {
+      await invitationsApi.refuse(campaign.id, user.companyId);
+      setInvitationStatus('REFUSED');
+    } finally {
+      setResponding(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white pt-20">
       <div className="max-w-5xl mx-auto px-4 py-8">
@@ -234,6 +273,40 @@ export default function CampaignDetailsPage() {
                     </Button>
                   )}
                 </>
+              )}
+
+              {user?.role === 'company' && invitationStatus && (
+                <div className="flex gap-2">
+                  {invitationStatus === 'INVITED' && canRespondToInvitation() && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={responding}
+                        onClick={handleRefuseInvitation}
+                      >
+                        Refuser
+                      </Button>
+                      <Button
+                        size="sm"
+                        disabled={responding}
+                        onClick={handleAcceptInvitation}
+                      >
+                        Accepter
+                      </Button>
+                    </>
+                  )}
+                  {invitationStatus === 'ACCEPTED' && (
+                    <Badge variant="outline" className="text-xs">
+                      Invitation acceptée
+                    </Badge>
+                  )}
+                  {invitationStatus === 'REFUSED' && (
+                    <Badge variant="outline" className="text-xs">
+                      Invitation refusée
+                    </Badge>
+                  )}
+                </div>
               )}
 
               {/* Boutons pour propriétaires de campagne */}

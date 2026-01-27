@@ -16,6 +16,7 @@ type InvitationStatus = 'INVITED' | 'ACCEPTED' | 'REFUSED';
 
 interface Invitation {
   id: string;
+  companyId: string;
   token?: string;
   status: InvitationStatus;
   invitedAt: string;
@@ -36,6 +37,7 @@ export default function CompanyInvitationsPage() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | InvitationStatus>('all');
+  const [respondingId, setRespondingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchInvitations();
@@ -98,6 +100,36 @@ export default function CompanyInvitationsPage() {
       }
     };
     return configs[status];
+  };
+
+  const updateInvitationStatus = (invitationId: string, status: InvitationStatus) => {
+    setInvitations((prev) =>
+      prev.map((inv) => (inv.id === invitationId ? { ...inv, status } : inv)),
+    );
+  };
+
+  const handleAccept = async (invitation: Invitation) => {
+    try {
+      setRespondingId(invitation.id);
+      await invitationsApi.accept(invitation.campaign.id, invitation.companyId);
+      updateInvitationStatus(invitation.id, 'ACCEPTED');
+    } catch (error) {
+      console.error('Error accepting invitation:', error);
+    } finally {
+      setRespondingId(null);
+    }
+  };
+
+  const handleRefuse = async (invitation: Invitation) => {
+    try {
+      setRespondingId(invitation.id);
+      await invitationsApi.refuse(invitation.campaign.id, invitation.companyId);
+      updateInvitationStatus(invitation.id, 'REFUSED');
+    } catch (error) {
+      console.error('Error refusing invitation:', error);
+    } finally {
+      setRespondingId(null);
+    }
   };
 
   if (loading) {
@@ -239,14 +271,25 @@ export default function CompanyInvitationsPage() {
                         Voir détails
                       </Button>
                       
-                      {invitation.status === 'INVITED' && canRespond && invitation.token && (
-                        <Button
-                          size="sm"
-                          onClick={() => router.push(`/invitation/${invitation.token}`)}
-                          className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-                        >
-                          Répondre à l'invitation
-                        </Button>
+                      {invitation.status === 'INVITED' && canRespond && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={respondingId === invitation.id}
+                            onClick={() => handleRefuse(invitation)}
+                          >
+                            Refuser
+                          </Button>
+                          <Button
+                            size="sm"
+                            disabled={respondingId === invitation.id}
+                            onClick={() => handleAccept(invitation)}
+                            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                          >
+                            Accepter
+                          </Button>
+                        </>
                       )}
                       
                       {invitation.status === 'ACCEPTED' && invitation.campaign.status === 'OPEN' && !isDeadlinePassed && (
