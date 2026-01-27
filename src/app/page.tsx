@@ -91,12 +91,12 @@ const CampaignPreview = ({ campaign }: { campaign: Campaign }) => {
       </span>
     </div>
 
-    <Link
-      href="/register"
-      className="block w-full text-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gray-900 hover:bg-gray-800 transition-colors"
-    >
-      Créer un compte pour candidater
-    </Link>
+      <Link
+        href="/login"
+        className="block w-full text-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gray-900 hover:bg-gray-800 transition-colors"
+      >
+        Se connecter pour candidater
+      </Link>
   </div>
   );
 };
@@ -119,6 +119,9 @@ export default function HomePage() {
           return
         case 'company':
           router.push('/campaigns/company/me')
+          return
+        case 'platform_admin':
+          router.push('/admin')
           return
       }
     }
@@ -196,10 +199,10 @@ export default function HomePage() {
               className="flex flex-col sm:flex-row gap-4 justify-center"
             >
               <Link
-                href="/register"
+                href="/login"
                 className="inline-flex items-center justify-center px-8 py-4 border border-transparent text-base font-medium rounded-md text-white bg-gray-900 hover:bg-gray-800 transition-colors"
               >
-                Commencer maintenant
+                Se connecter
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
               <Link
@@ -377,10 +380,10 @@ export default function HomePage() {
             Rejoignez des milliers d'étudiants qui ont trouvé leur opportunité idéale sur StepIn
           </p>
           <Link
-            href="/register"
+            href="/login"
             className="inline-flex items-center justify-center px-8 py-4 border border-transparent text-base font-medium rounded-md text-gray-900 bg-white hover:bg-gray-100 transition-colors"
           >
-            Créer mon compte gratuitement
+            Se connecter
             <ArrowRight className="w-5 h-5 ml-2" />
           </Link>
         </div>

@@ -6,6 +6,7 @@ import { GraduationCap, Edit, Lock, Users, Eye, Plus } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import StatusBadge from '@/components/campaigns/StatusBadge';
 import { toast } from 'sonner';
+import { getServiceUrl } from "@/config/api.config";
 
 interface Campaign {
   id: string;
@@ -25,6 +26,7 @@ export default function SchoolCampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const campaignBase = getServiceUrl("campaign");
 
   useEffect(() => {
     fetchCampaigns();
@@ -34,7 +36,16 @@ export default function SchoolCampaignsPage() {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
-      const response = await fetch('/api/schools/me/campaigns', {
+      if (!localStorage.getItem("user")) {
+        throw new Error("Utilisateur non identifié");
+      }
+      const raw = localStorage.getItem("user") || "{}";
+      const parsed = JSON.parse(raw);
+      const schoolId = parsed?.schoolId;
+      if (!schoolId) {
+        throw new Error("SchoolId manquant");
+      }
+      const response = await fetch(`${campaignBase}/campaigns/schools/${schoolId}`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
         signal: controller.signal,
       });
@@ -123,7 +134,7 @@ export default function SchoolCampaignsPage() {
                 </div>
                 
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => router.push(`/campaigns/${campaign.id}`)}>
+                  <Button variant="outline" size="sm" onClick={() => router.push(`/campaigns/school/${campaign.id}/edit`)}>
                     <Eye className="w-4 h-4 mr-1" />
                     Voir
                   </Button>
@@ -133,7 +144,7 @@ export default function SchoolCampaignsPage() {
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => router.push(`/campaigns/${campaign.id}/participants`)}>
                     <Users className="w-4 h-4 mr-1" />
-                    Participants ({campaign.acceptedCount})
+                    Participants
                   </Button>
                   <Button variant="outline" size="sm" disabled={campaign.status === 'LOCKED'} onClick={() => handleLock(campaign.id)}>
                     <Lock className="w-4 h-4 mr-1" />

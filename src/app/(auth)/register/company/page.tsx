@@ -1,50 +1,23 @@
-"use client"
+"use client";
 
-import { useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
-import CompanyForm from '../components/CompanyForm';
-import AccessCodeVerification from '../components/AccessCodeVerification';
+import Link from "next/link";
 
 export default function CompanyRegisterPage() {
-  const [isVerified, setIsVerified] = useState(false);
-
-  if (!isVerified) {
-    return <AccessCodeVerification onSuccess={() => setIsVerified(true)} type="company" />;
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center  py-12">
-      <div className="max-w-md w-full mx-auto px-4">
-        <div className="mb-6">
-          <Link
-            href="/register"
-            className="inline-flex items-center text-sm text-gray-600 hover:text-gray-800 transition-colors duration-200"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour
-          </Link>
-        </div>
-        
-        <div className="mb-8">
-          <h1 className="text-2xl font-medium text-gray-900 mb-2">
-            Créer votre compte entreprise
-          </h1>
-          <p className="text-gray-600">
-            Rejoignez notre réseau de recruteurs et trouvez vos futurs talents
-          </p>
-        </div>
-
-        <CompanyForm />
-
-        <div className="mt-8 text-center border-t border-gray-200 pt-6">
-          <p className="text-gray-600">
-            Déjà un compte ?{' '}
-            <Link href="/login" className="text-blue-600 hover:text-blue-800 transition-colors duration-200">
-              Se connecter
-            </Link>
-          </p>
-        </div>
+    <div className="min-h-screen flex items-center justify-center py-12 bg-gray-50">
+      <div className="w-full max-w-md mx-auto px-4 text-center bg-white rounded-xl border border-gray-200 p-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-3">
+          Inscription désactivée
+        </h1>
+        <p className="text-gray-600 mb-6">
+          Les comptes entreprise sont créés par un administrateur de la plateforme.
+        </p>
+        <Link
+          href="/login"
+          className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+        >
+          Se connecter
+        </Link>
       </div>
     </div>
   );

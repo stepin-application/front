@@ -1,57 +1,24 @@
-"use client"
+"use client";
 
-import { useState } from 'react';
-import { GraduationCap, ArrowLeft, CheckCircle2 } from 'lucide-react';
-import Link from 'next/link';
-import SchoolForm from '../components/SchoolForm';
-import AccessCodeVerification from '../components/AccessCodeVerification';
-
-const benefits = [
-  "Accès aux meilleures opportunités pour vos étudiants",
-  "Développement de programmes adaptés",
-  "Réseau d'entreprises partenaires"
-];
+import Link from "next/link";
 
 export default function SchoolRegisterPage() {
-  const [isVerified, setIsVerified] = useState(false);
-
-  if (!isVerified) {
-    return <AccessCodeVerification onSuccess={() => setIsVerified(true)} type="school" />;
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center py-12">
-      <div className="max-w-md w-full mx-auto px-4">
-        <div className="mb-6">
-          <Link
-            href="/register"
-            className="inline-flex items-center text-sm text-gray-600 hover:text-gray-800 transition-colors duration-200"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour
-          </Link>
-        </div>
-        
-        <div className="mb-8">
-          <h1 className="text-2xl font-medium text-gray-900 mb-2">
-            Créer votre compte école
-          </h1>
-          <p className="text-gray-600">
-            Rejoignez notre réseau éducatif et développez vos opportunités
-          </p>
-        </div>
-
-        <SchoolForm />
-
-        <div className="mt-8 text-center border-t border-gray-200 pt-6">
-          <p className="text-gray-600">
-            Déjà un compte ?{' '}
-            <Link href="/login" className="text-blue-600 hover:text-blue-800 transition-colors duration-200">
-              Se connecter
-            </Link>
-          </p>
-        </div>
+    <div className="min-h-screen flex items-center justify-center py-12 bg-gray-50">
+      <div className="w-full max-w-md mx-auto px-4 text-center bg-white rounded-xl border border-gray-200 p-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-3">
+          Inscription désactivée
+        </h1>
+        <p className="text-gray-600 mb-6">
+          Les comptes école sont créés par un administrateur de la plateforme.
+        </p>
+        <Link
+          href="/login"
+          className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+        >
+          Se connecter
+        </Link>
       </div>
     </div>
   );
-} 
+}

@@ -262,7 +262,7 @@ export default function CampaignsPage() {
           >
             <Sparkles className="w-4 h-4 mr-2" />
             {!isAuthenticated
-              ? "Inscription gratuite"
+              ? "Accès réservé"
               : "Découvrez nos dernières opportunités"}
           </motion.div>
           <div className="flex items-center justify-center gap-4 mb-4">
@@ -308,10 +308,10 @@ export default function CampaignsPage() {
               className="mt-6 flex flex-col sm:flex-row gap-4 justify-center"
             >
               <Link
-                href="/register"
+                href="/login"
                 className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
               >
-                Créer un compte étudiant
+                Se connecter
               </Link>
               <Link
                 href="/login"
@@ -451,10 +451,10 @@ export default function CampaignsPage() {
                         utiliser les filtres avancés et candidater directement.
                       </p>
                       <Link
-                        href="/register"
+                        href="/login"
                         className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                       >
-                        Créer mon compte gratuitement
+                        Se connecter
                       </Link>
                     </motion.div>
                   )}

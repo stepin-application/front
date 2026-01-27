@@ -20,8 +20,12 @@ export default function LoginPage() {
     setError("");
 
     try {
-      await login(email, password);
-      router.push("/");
+      const result = await login(email, password);
+      if (result.mustChangePassword) {
+        router.push("/change-password");
+      } else {
+        router.push("/");
+      }
     } catch (error: any) {
       setError(error.message || "Erreur de connexion");
     } finally {
@@ -107,9 +111,9 @@ export default function LoginPage() {
           <div className="text-center pt-6">
             <p className="text-xs sm:text-sm text-gray-600">
               Pas encore de compte ?{' '}
-              <Link href="/register" className="font-medium text-gray-900 hover:text-gray-700">
-                Créer un compte
-              </Link>
+              <span className="font-medium text-gray-900">
+                Accès sur invitation
+              </span>
             </p>
           </div>
         </div>

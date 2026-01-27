@@ -2,7 +2,7 @@
 
 export type CampaignStatus = 'OPEN' | 'LOCKED' | 'CLOSED' | 'active' | 'upcoming' | 'closed' | 'matching' | 'completed';
 export type InvitationStatus = 'INVITED' | 'ACCEPTED' | 'REFUSED';
-export type UserRole = 'school' | 'company' | 'student';
+export type UserRole = 'school' | 'company' | 'student' | 'platform_admin';
 export type ContractType = 'stage' | 'cdi' | 'cdd' | 'alternance';
 export type ApplicationStatus = 'submitted' | 'reviewed' | 'shortlisted' | 'interview_scheduled' | 'accepted' | 'rejected';
 

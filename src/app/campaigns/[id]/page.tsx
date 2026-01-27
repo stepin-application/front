@@ -177,9 +177,9 @@ export default function CampaignDetailsPage() {
               {/* CTA pour visiteurs non connectés */}
               {!isAuthenticated && (
                 <div className="flex gap-2">
-                  <Link href="/register">
+                  <Link href="/login">
                     <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                      S'inscrire pour candidater
+                      Se connecter pour candidater
                     </Button>
                   </Link>
                 </div>
@@ -259,9 +259,9 @@ export default function CampaignDetailsPage() {
                   Créez votre compte pour accéder aux détails complets de cette campagne et candidater.
                 </p>
                 <div className="flex gap-3">
-                  <Link href="/register">
+                  <Link href="/login">
                     <Button className="bg-blue-600 hover:bg-blue-700">
-                      Créer un compte
+                      Se connecter
                     </Button>
                   </Link>
                   <Link href="/login">
@@ -365,9 +365,9 @@ export default function CampaignDetailsPage() {
                 <p className="text-xs text-blue-700 mb-3">
                   Accédez à toutes les fonctionnalités et candidatez aux meilleures opportunités.
                 </p>
-                <Link href="/register">
+                <Link href="/login">
                   <Button className="w-full text-sm bg-blue-600 hover:bg-blue-700">
-                    Créer un compte gratuit
+                    Se connecter
                   </Button>
                 </Link>
               </div>

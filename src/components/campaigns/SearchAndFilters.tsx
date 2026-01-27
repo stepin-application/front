@@ -18,7 +18,7 @@ interface SearchAndFiltersProps {
     status: FilterStatus;
     target: FilterTarget;
   }) => void;
-  userRole?: 'school' | 'company' | 'student' | null | undefined;
+  userRole?: 'school' | 'company' | 'student' | 'platform_admin' | null | undefined;
 }
 
 export default function SearchAndFilters({ onSearch, onFilterChange, userRole }: SearchAndFiltersProps) {

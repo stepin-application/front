@@ -11,7 +11,7 @@ import Link from 'next/link';
 interface CampaignCardProps {
   campaign: Campaign;
   isAuthenticated?: boolean;
-  userRole?: 'school' | 'company' | 'student';
+  userRole?: 'school' | 'company' | 'student' | 'platform_admin';
 }
 
 export default function CampaignCard({ campaign, isAuthenticated = false, userRole }: CampaignCardProps) {

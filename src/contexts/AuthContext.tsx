@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-type UserRole = 'school' | 'company' | 'student' | null;
+type UserRole = 'school' | 'company' | 'student' | 'platform_admin' | null;
 
 interface User {
   id: string;
@@ -16,7 +16,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<{ mustChangePassword: boolean }>;
   logout: () => void;
   getToken: () => string | null;
   setUser: (user: User | null) => void;
@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (value.startsWith('school')) return 'school';
     if (value.startsWith('company')) return 'company';
     if (value.startsWith('student')) return 'student';
+    if (value.startsWith('platform')) return 'platform_admin';
     return null;
   };
 
@@ -74,6 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('token', data.token);
+      localStorage.setItem('mustChangePassword', data.mustChangePassword ? 'true' : 'false');
+      return { mustChangePassword: !!data.mustChangePassword };
     } catch (error) {
       console.error('Login error:', error);
       throw error;

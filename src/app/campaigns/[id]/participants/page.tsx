@@ -6,21 +6,19 @@ import { ArrowLeft, Building, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { getServiceUrl } from "@/config/api.config";
 
 interface Participant {
-  company: {
-    id: string;
-    name: string;
-    logo: string;
-    industry: string;
-  };
-  acceptedAt: string;
-  jobOpeningsCount: number;
-  jobOpenings: Array<{
-    id: string;
-    title: string;
-    contractType: string;
-  }>;
+  companyId: string;
+  campaignId: string;
+  status: string;
+  respondedAt?: string;
+}
+
+interface Company {
+  id: string;
+  name: string;
+  logo?: string;
 }
 
 export default function ParticipantsPage() {
@@ -28,6 +26,8 @@ export default function ParticipantsPage() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [campaignTitle, setCampaignTitle] = useState('');
+  const campaignBase = getServiceUrl("campaign");
+  const [companyMap, setCompanyMap] = useState<Record<string, Company>>({});
 
   useEffect(() => {
     fetchParticipants();
@@ -35,13 +35,25 @@ export default function ParticipantsPage() {
 
   const fetchParticipants = async () => {
     try {
-      const response = await fetch(`/api/campaigns/${id}/participants`, {
+      const response = await fetch(`${campaignBase}/campaigns/${id}/participants`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (!response.ok) throw new Error('Failed');
-      const data = await response.json().catch(() => ({}));
-      setParticipants(Array.isArray(data?.participants) ? data.participants : []);
-      setCampaignTitle(typeof data?.campaignTitle === 'string' ? data.campaignTitle : '');
+      const data = await response.json().catch(() => []);
+      setParticipants(Array.isArray(data) ? data : []);
+      setCampaignTitle('');
+
+      const companiesRes = await fetch(`${campaignBase}/admin/companies`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const companies = await companiesRes.json().catch(() => []);
+      if (Array.isArray(companies)) {
+        const map: Record<string, Company> = {};
+        companies.forEach((c: any) => {
+          if (c?.id) map[c.id] = c;
+        });
+        setCompanyMap(map);
+      }
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -60,7 +72,7 @@ export default function ParticipantsPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-6xl mx-auto px-4">
-        <Link href={`/campaigns/${id}`} className="inline-flex items-center text-sm text-gray-500 hover:text-gray-900 mb-6">
+        <Link href="/campaigns/school/me" className="inline-flex items-center text-sm text-gray-500 hover:text-gray-900 mb-6">
           <ArrowLeft className="w-4 h-4 mr-1" />
           Retour à la campagne
         </Link>
@@ -81,18 +93,25 @@ export default function ParticipantsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {participants.map((participant) => (
-              <div key={participant.company.id} className="bg-white rounded-xl shadow-sm border p-6">
+            {participants.map((participant) => {
+              const company = companyMap[participant.companyId];
+              const companyName = company?.name || participant.companyId || 'Entreprise';
+              const companyLogo = company?.logo || undefined;
+              const companyInitial = companyName?.[0] || '?';
+              return (
+              <div key={participant.companyId} className="bg-white rounded-xl shadow-sm border p-6">
                 <div className="flex items-start gap-4 mb-4">
                   <Avatar className="h-12 w-12">
-                    <AvatarImage src={participant.company.logo} />
-                    <AvatarFallback>{participant.company.name[0]}</AvatarFallback>
+                    <AvatarImage src={companyLogo} />
+                    <AvatarFallback>{companyInitial}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">{participant.company.name}</h3>
-                    <p className="text-sm text-gray-600">{participant.company.industry}</p>
+                    <h3 className="font-semibold text-gray-900">{companyName}</h3>
+                    <p className="text-sm text-gray-600">{participant.status}</p>
                     <p className="text-xs text-gray-500 mt-1">
-                      Accepté le {new Date(participant.acceptedAt).toLocaleDateString('fr-FR')}
+                      {participant.respondedAt
+                        ? `Répondu le ${new Date(participant.respondedAt).toLocaleDateString('fr-FR')}`
+                        : 'En attente de réponse'}
                     </p>
                   </div>
                 </div>
@@ -100,23 +119,12 @@ export default function ParticipantsPage() {
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
                   <p className="text-sm text-green-800 font-medium">
                     <Briefcase className="w-4 h-4 inline mr-1" />
-                    {participant.jobOpeningsCount} poste{participant.jobOpeningsCount > 1 ? 's' : ''} proposé{participant.jobOpeningsCount > 1 ? 's' : ''}
+                    Participation enregistrée
                   </p>
                 </div>
-
-                {participant.jobOpenings.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-gray-700">Postes :</p>
-                    {participant.jobOpenings.map((job) => (
-                      <div key={job.id} className="flex items-center justify-between text-sm">
-                        <span className="text-gray-900">{job.title}</span>
-                        <Badge variant="outline" className="text-xs">{job.contractType}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

@@ -79,9 +79,12 @@ export default function DevNav() {
 
     // Authentification
     { title: "Connexion", href: "/login", category: "Auth" },
-    { title: "Inscription", href: "/register", category: "Auth" },
-    { title: "Inscription Entreprise", href: "/register/company", category: "Auth" },
-    { title: "Inscription École", href: "/register/school", category: "Auth" },
+    { title: "Connexion", href: "/login", category: "Auth" },
+    { title: "Admin", href: "/admin", category: "Admin" },
+    { title: "Admin Écoles", href: "/admin/schools", category: "Admin" },
+    { title: "Admin Entreprises", href: "/admin/companies", category: "Admin" },
+    { title: "Admin Utilisateurs", href: "/admin/users", category: "Admin" },
+    { title: "Import Étudiants", href: "/admin/students/import", category: "Admin" },
 
     // Campagnes École
     { title: "Mes campagnes (École)", href: "/campaigns/school/me", category: "École" },

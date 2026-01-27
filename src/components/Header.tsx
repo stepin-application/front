@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Menu, X, Home, Megaphone, Building, LogIn, UserPlus, Briefcase, Mail, GraduationCap, Sun, Moon } from "lucide-react";
+import { Sparkles, Menu, X, Home, Megaphone, Building, LogIn, Briefcase, Mail, GraduationCap, Sun, Moon } from "lucide-react";
 import Link from 'next/link';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -78,6 +78,15 @@ export default function Header() {
       );
     }
 
+    if (user?.role === 'platform_admin') {
+      baseItems.push({
+        name: "Admin",
+        href: "/admin",
+        icon: Home,
+        description: "Administration plateforme"
+      });
+    }
+
     return baseItems;
   };
 
@@ -147,13 +156,6 @@ export default function Header() {
                       <LogIn className="w-4 h-4" />
                       <span>Connexion</span>
                     </Link>
-                    <Link
-                      href="/register"
-                      className="px-4 py-1.5 text-sm text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 shadow-md shadow-purple-500/20 hover:shadow-purple-500/30 flex items-center space-x-1"
-                    >
-                      <UserPlus className="w-4 h-4" />
-                      <span>S'inscrire</span>
-                    </Link>
                   </>
                 )}
               </div>
@@ -210,14 +212,6 @@ export default function Header() {
               >
                 <LogIn className="w-4 h-4" />
                 <span>Connexion</span>
-              </Link>
-              <Link
-                href="/register"
-                className="flex items-center space-x-2 text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full px-6 py-2 hover:from-purple-700 hover:to-indigo-700 transition-all duration-300"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>S'inscrire</span>
               </Link>
             </div>
           </div>
