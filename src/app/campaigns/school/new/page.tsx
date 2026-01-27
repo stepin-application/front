@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import {
@@ -37,6 +37,7 @@ export default function NewSchoolCampaignPage() {
   const router = useRouter();
   const { createCampaign, inviteCompany, loading, error } = useCampaigns();
   const { user } = useAuth();
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -196,6 +197,15 @@ export default function NewSchoolCampaignPage() {
     } else {
       setSelectedCompanies((prev) => [...prev, company]);
     }
+  };
+
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    setFormData((prev) => ({ ...prev, image: file }));
+  };
+
+  const handleImageBrowse = () => {
+    imageInputRef.current?.click();
   };
 
   return (
@@ -465,9 +475,28 @@ export default function NewSchoolCampaignPage() {
                 <p className="text-sm text-gray-500">
                   Glissez-déposez une image ou
                 </p>
-                <Button variant="outline" size="sm" className="mt-2">
+                <input
+                  id="campaign-image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  ref={imageInputRef}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={handleImageBrowse}
+                >
                   Parcourir
                 </Button>
+                {formData.image && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    Fichier sélectionné : {formData.image.name}
+                  </p>
+                )}
               </div>
             </div>
           </div>
