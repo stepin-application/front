@@ -32,23 +32,27 @@ export default function CompanyJobsPage() {
   const router = useRouter();
   const [jobs, setJobs] = useState<JobOpening[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchJobs();
-  }, []);
+  }, []); // Refresh jobs when component mounts
 
   const fetchJobs = async () => {
     try {
       const storedUser = localStorage.getItem('user');
       const companyId = storedUser ? JSON.parse(storedUser)?.companyId : null;
-      if (!companyId) throw new Error('Missing company id');
+      if (!companyId) {
+        console.log('No company ID found');
+        setJobs([]);
+        return;
+      }
 
       const data = await jobOpenings.getByCompany(companyId);
       setJobs(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Error:', error);
-      setError("Impossible de charger les offres de l'entreprise.");
+    } catch (error: any) {
+      console.log('No jobs found or error loading jobs:', error);
+      // Always treat as empty state, never show errors
+      setJobs([]);
     } finally {
       setLoading(false);
     }
@@ -84,17 +88,12 @@ export default function CompanyJobsPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-6xl mx-auto px-4">
-        {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-800">
-            {error}
-          </div>
-        )}
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Mes Offres</h1>
             <p className="text-gray-600">Gérez vos offres de recrutement</p>
           </div>
-          <Button onClick={() => router.push('/campaigns/company/new')}>
+          <Button onClick={() => router.push('/campaigns/company/invitations')}>
             <Plus className="w-4 h-4 mr-2" />
             Nouvelle offre
           </Button>
@@ -103,13 +102,28 @@ export default function CompanyJobsPage() {
         {jobs.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border p-12 text-center">
             <Briefcase className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune offre</h3>
-            <p className="text-gray-600 mb-4">Commencez par créer votre première offre</p>
-            <Button onClick={() => router.push('/campaigns/company/new')}>
-              Créer une offre
-            </Button>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune offre d'emploi</h3>
+            <p className="text-gray-600 mb-4">
+              Vous n'avez pas encore créé d'offres d'emploi. Commencez par créer votre première offre pour attirer les meilleurs talents.
+            </p>
+            <div className="space-y-3">
+              <Button onClick={() => router.push('/campaigns/company/invitations')}>
+                <Plus className="w-4 h-4 mr-2" />
+                Créer ma première offre
+              </Button>
+              <p className="text-sm text-gray-500">
+                💡 Astuce : Consultez d'abord vos invitations pour répondre aux campagnes des écoles
+              </p>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => router.push('/campaigns/company/invitations')}
+              >
+                Voir mes invitations
+              </Button>
+            </div>
           </div>
-        ) : (
+        ) : jobs.length > 0 ? (
           <div className="space-y-4">
             {jobs.map((job) => {
               const canEdit = !job.campaign || (job.campaign.status === 'OPEN' && new Date(job.campaign.deadline) > new Date());
@@ -135,7 +149,7 @@ export default function CompanyJobsPage() {
                   </div>
                   
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => router.push(`/campaigns/${job.id}`)}>
+                    <Button variant="outline" size="sm" onClick={() => router.push(`/jobs/${job.id}`)}>
                       <Eye className="w-4 h-4 mr-1" />
                       Voir
                     </Button>
@@ -152,7 +166,7 @@ export default function CompanyJobsPage() {
               );
             })}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

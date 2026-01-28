@@ -146,6 +146,8 @@ export const jobOpenings = {
     ),
   getByCompany: (companyId: string) =>
     jobApi.get(`/companies/${companyId}/job-openings`),
+  getByCampaign: (campaignId: string) =>
+    jobApi.get(`/campaigns/${campaignId}/job-openings`),
   getById: (jobId: string) => jobApi.get(`/job-openings/${jobId}`),
   getAll: (params?: {
     campaignId?: string;

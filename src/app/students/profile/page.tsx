@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import StudentProfileForm from '@/components/students/StudentProfileForm'
 import { studentProfiles } from '@/lib/api'
 import { User, CheckCircle, AlertCircle } from 'lucide-react'
@@ -32,9 +32,12 @@ interface StudentProfile {
 export default function StudentProfilePage() {
   const { user } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<StudentProfile | null>(null)
   const [hasProfile, setHasProfile] = useState(false)
+  
+  const returnTo = searchParams.get('returnTo')
 
   useEffect(() => {
     if (!user || user.role !== 'student') {
@@ -139,8 +142,12 @@ export default function StudentProfilePage() {
       setProfile(profileData)
       setHasProfile(true)
       
-      // Rediriger vers le dashboard
-      router.push('/students/dashboard')
+      // Rediriger vers l'URL de retour ou le dashboard
+      if (returnTo) {
+        router.push(returnTo)
+      } else {
+        router.push('/students/dashboard')
+      }
     } catch (error: any) {
       console.error('❌ Erreur lors de la sauvegarde:', error)
       
@@ -157,7 +164,11 @@ export default function StudentProfilePage() {
   }
 
   const handleCancel = () => {
-    router.push('/students/dashboard')
+    if (returnTo) {
+      router.push(returnTo)
+    } else {
+      router.push('/students/dashboard')
+    }
   }
 
   if (loading) {

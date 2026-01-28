@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Calendar, MapPin, Users, Building, Upload, Plus, Trash2, Info } from 'lucide-react';
+import { ArrowLeft, Upload, Plus, Trash2, Info } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,8 @@ function NewCompanyCampaignPageContent() {
   const isInvitationResponse = !!campaignId;
 
   const [campaignInfo, setCampaignInfo] = useState<{ schoolName: string; campaignName: string } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -48,12 +50,24 @@ function NewCompanyCampaignPageContent() {
       const response = await fetch(`/api/campaigns/${campaignId}`);
       if (!response.ok) throw new Error('Failed to fetch campaign info');
       const data = await response.json().catch(() => ({}));
+      
+      // Handle both array and object responses
+      let campaignData = data;
+      if (Array.isArray(data) && data.length > 0) {
+        campaignData = data[0]; // Take first item if it's an array
+      }
+      
       setCampaignInfo({
-        schoolName: data?.school?.name || data?.schoolId || 'École',
-        campaignName: data?.name || data?.title || 'Campagne'
+        schoolName: campaignData?.school?.name || campaignData?.schoolId || 'École',
+        campaignName: campaignData?.name || campaignData?.title || 'Campagne'
       });
     } catch (error) {
       console.error('Error fetching campaign info:', error);
+      // Set default values if fetch fails
+      setCampaignInfo({
+        schoolName: 'École',
+        campaignName: 'Campagne'
+      });
     }
   };
 
@@ -72,8 +86,38 @@ function NewCompanyCampaignPageContent() {
     tags: "Mots-clés permettant de catégoriser et de retrouver facilement votre offre"
   };
 
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+
+    if (!formData.title.trim()) {
+      errors.title = 'Le titre est requis';
+    }
+
+    if (!formData.description.trim()) {
+      errors.description = 'La description est requise';
+    }
+
+    if (!formData.contractType) {
+      errors.contractType = 'Le type de contrat est requis';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Clear previous errors
+    setFormErrors({});
+    
+    // Validate form
+    if (!validateForm()) {
+      toast.error('Veuillez corriger les erreurs dans le formulaire');
+      return;
+    }
+    
+    setSubmitting(true);
     
     try {
       if (!campaignId) {
@@ -86,27 +130,47 @@ function NewCompanyCampaignPageContent() {
         throw new Error('Missing company id');
       }
 
-      await jobOpenings.create(campaignId, companyId, {
-        title: formData.title,
-        description: formData.description,
-        requirements: formData.requirements.filter(Boolean).join('\n')
-      });
+      const jobData = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        contractType: formData.contractType,
+        duration: formData.duration.trim() || 'Non spécifiée',
+        location: formData.location.trim() || 'À définir',
+        maxParticipants: formData.maxParticipants ? parseInt(formData.maxParticipants) : 1,
+        requirements: formData.requirements.filter(Boolean).join('\n') || '',
+        benefits: formData.benefits.filter(Boolean).join('\n') || '',
+        tags: formData.tags.filter(Boolean).join(',') || ''
+      };
+      
+      console.log('Creating job with data:', jobData);
+      const result = await jobOpenings.create(campaignId, companyId, jobData);
+      console.log('Job created successfully:', result);
 
       toast.success('Poste ajouté avec succès !');
+      // Redirect back to company dashboard to see the new job
       router.push('/campaigns/company/me');
     } catch (error: any) {
       console.error('Error submitting form:', error);
       
-      // Messages d'erreur métier
-      if (error.message.includes('locked')) {
-        toast.error('Campaign is locked');
-      } else if (error.message.includes('deadline')) {
-        toast.error('Deadline passed');
-      } else if (error.message.includes('not accepted')) {
-        toast.error('Company not accepted for this campaign');
+      // Better error handling with specific messages
+      if (error.message.includes('locked') || error.message.includes('LOCKED')) {
+        toast.error('Cette campagne est verrouillée et n\'accepte plus de nouvelles offres');
+      } else if (error.message.includes('deadline') || error.message.includes('expired')) {
+        toast.error('La deadline pour ajouter des offres à cette campagne est dépassée');
+      } else if (error.message.includes('not accepted') || error.message.includes('invitation')) {
+        toast.error('Votre entreprise n\'a pas accepté l\'invitation à cette campagne');
+      } else if (error.message.includes('Missing campaign id')) {
+        toast.error('Campagne non trouvée. Veuillez sélectionner une campagne valide');
+        router.push('/campaigns/company/invitations');
+      } else if (error.message.includes('Missing company id')) {
+        toast.error('Erreur d\'authentification. Veuillez vous reconnecter');
+      } else if (error.message.includes('Network') || error.name === 'NetworkError') {
+        toast.error('Problème de connexion. Vérifiez votre connexion internet et réessayez');
       } else {
-        toast.error('Erreur lors de la création');
+        toast.error('Erreur lors de la création de l\'offre. Veuillez réessayer');
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -180,10 +244,20 @@ function NewCompanyCampaignPageContent() {
               <Input
                 id="title"
                 value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, title: e.target.value }));
+                  // Clear error when user starts typing
+                  if (formErrors.title) {
+                    setFormErrors(prev => ({ ...prev, title: '' }));
+                  }
+                }}
                 placeholder="Ex: Stage développeur fullstack"
+                className={formErrors.title ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}
                 required
               />
+              {formErrors.title && (
+                <p className="text-red-600 text-sm mt-1">{formErrors.title}</p>
+              )}
             </div>
 
             <div>
@@ -199,11 +273,20 @@ function NewCompanyCampaignPageContent() {
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, description: e.target.value }));
+                  if (formErrors.description) {
+                    setFormErrors(prev => ({ ...prev, description: '' }));
+                  }
+                }}
                 placeholder="Décrivez le poste, les missions et votre entreprise..."
+                className={formErrors.description ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}
                 rows={6}
                 required
               />
+              {formErrors.description && (
+                <p className="text-red-600 text-sm mt-1">{formErrors.description}</p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -220,8 +303,15 @@ function NewCompanyCampaignPageContent() {
                 <select
                   id="contractType"
                   value={formData.contractType}
-                  onChange={(e) => setFormData(prev => ({ ...prev, contractType: e.target.value }))}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, contractType: e.target.value }));
+                    if (formErrors.contractType) {
+                      setFormErrors(prev => ({ ...prev, contractType: '' }));
+                    }
+                  }}
+                  className={`block w-full px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 sm:text-sm ${
+                    formErrors.contractType ? 'border-red-300' : 'border-gray-300'
+                  }`}
                   required
                 >
                   <option value="">Sélectionner</option>
@@ -230,6 +320,9 @@ function NewCompanyCampaignPageContent() {
                   <option value="cdd">CDD</option>
                   <option value="alternance">Alternance</option>
                 </select>
+                {formErrors.contractType && (
+                  <p className="text-red-600 text-sm mt-1">{formErrors.contractType}</p>
+                )}
               </div>
               <div>
                 <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
@@ -485,8 +578,19 @@ function NewCompanyCampaignPageContent() {
 
           {/* Submit */}
           <div className="pt-6 border-t">
-            <Button type="submit" className="w-full">
-              Ajouter le poste
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={submitting}
+            >
+              {submitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Création en cours...
+                </>
+              ) : (
+                'Ajouter le poste'
+              )}
             </Button>
           </div>
         </form>

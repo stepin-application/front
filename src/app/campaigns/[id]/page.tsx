@@ -3,14 +3,14 @@
 import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Calendar, MapPin, Users, Building, GraduationCap, CheckCircle2, Clock, XCircle, Share2, BookmarkPlus, MessageCircle, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Users, Building, GraduationCap, CheckCircle2, Clock, XCircle, Share2, BookmarkPlus, MessageCircle, AlertTriangle, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from '@/contexts/AuthContext';
-import { campaigns, directory, invitations as invitationsApi } from "@/lib/api";
+import { campaigns, directory, invitations as invitationsApi, jobOpenings } from "@/lib/api";
 import { Campaign } from "@/types/campaign";
 import { campaignApplyPath, campaignParticipantsPath, schoolCampaignEditPath } from "@/lib/utils";
 
@@ -20,9 +20,59 @@ export default function CampaignDetailsPage() {
   const id = searchParams.get('id') || (pathId as string);
   const { user, isAuthenticated } = useAuth();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
+  const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [jobsLoading, setJobsLoading] = useState(false);
   const [invitationStatus, setInvitationStatus] = useState<'INVITED' | 'ACCEPTED' | 'REFUSED' | null>(null);
   const [responding, setResponding] = useState(false);
+
+  // Helper function to get company IDs from campaign data
+  const getCompanyIdsForCampaign = (campaignData: Campaign): string[] => {
+    const createdBy = campaignData.createdBy as Campaign['createdBy'];
+    if (createdBy && 'industry' in createdBy) {
+      return [createdBy.id];
+    }
+    const responded = campaignData.respondedCompanies?.map((company) => company.id) || [];
+    return responded.filter(Boolean);
+  };
+
+  // Function to fetch jobs for the campaign
+  const fetchJobsForCampaign = async (campaignData: Campaign) => {
+    setJobsLoading(true);
+    try {
+      // First try to get all jobs for this campaign
+      let allJobs: any[] = [];
+      
+      try {
+        allJobs = await jobOpenings.getByCampaign(campaignData.id);
+      } catch (error) {
+        console.log(`No jobs found for campaign ${campaignData.id}`);
+        
+        // Fallback: try to get jobs by company if we have company IDs
+        const companyIds = getCompanyIdsForCampaign(campaignData);
+        if (companyIds.length > 0) {
+          const jobLists = await Promise.all(
+            companyIds.map(async (companyId) => {
+              try {
+                return await jobOpenings.getAll({ campaignId: campaignData.id, companyId });
+              } catch (error) {
+                console.log(`No jobs found for company ${companyId} in campaign ${campaignData.id}`);
+                return [];
+              }
+            })
+          );
+          allJobs = jobLists.flat();
+        }
+      }
+      
+      setJobs(allJobs);
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+      setJobs([]);
+    } finally {
+      setJobsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -68,6 +118,10 @@ export default function CampaignDetailsPage() {
           image: campaignData?.image
         };
         setCampaign(mapped);
+        
+        // Fetch jobs for this campaign
+        await fetchJobsForCampaign(mapped);
+        
         if (user?.role === 'company' && user.companyId) {
           const invitations = await invitationsApi.getByCompany(user.companyId).catch(() => []);
           if (Array.isArray(invitations)) {
@@ -118,27 +172,31 @@ export default function CampaignDetailsPage() {
   }
 
   const getStatusBadge = (status: typeof campaign.status) => {
-    const styles = {
+    const styles: Record<string, string> = {
       active: 'bg-green-50 text-green-700 border-green-100',
       upcoming: 'bg-blue-50 text-blue-700 border-blue-100', 
       closed: 'bg-gray-50 text-gray-700 border-gray-100',
       OPEN: 'bg-green-50 text-green-700 border-green-100',
       LOCKED: 'bg-gray-50 text-gray-700 border-gray-100',
-      CLOSED: 'bg-gray-50 text-gray-700 border-gray-100'
-    }[status];
+      CLOSED: 'bg-gray-50 text-gray-700 border-gray-100',
+      completed: 'bg-gray-50 text-gray-700 border-gray-100',
+      matching: 'bg-blue-50 text-blue-700 border-blue-100'
+    };
 
-    const text = {
+    const text: Record<string, string> = {
       active: 'Active',
       upcoming: 'À venir',
       closed: 'Terminée',
       OPEN: 'Active',
       LOCKED: 'Terminée',
-      CLOSED: 'Terminée'
-    }[status];
+      CLOSED: 'Terminée',
+      completed: 'Terminée',
+      matching: 'En cours'
+    };
 
     return (
-      <Badge className={`${styles} text-xs font-medium`}>
-        {text}
+      <Badge className={`${styles[status] || styles.closed} text-xs font-medium`}>
+        {text[status] || 'Inconnu'}
       </Badge>
     );
   };
@@ -405,6 +463,102 @@ export default function CampaignDetailsPage() {
                 </ul>
               </div>
             )}
+
+            {/* Jobs Section */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-medium text-gray-900 flex items-center">
+                  <Briefcase className="w-5 h-5 mr-2" />
+                  Offres d'emploi ({jobs.length})
+                </h2>
+              </div>
+              
+              {jobsLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="text-gray-600 mt-2">Chargement des offres...</p>
+                </div>
+              ) : jobs.length > 0 ? (
+                <div className="grid gap-4">
+                  {jobs.map((job) => (
+                    <div key={job.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-2">
+                        <Link href={`/jobs/${job.id}`} className="hover:text-blue-600">
+                          <h3 className="text-lg font-medium text-gray-900 hover:text-blue-600">{job.title}</h3>
+                        </Link>
+                        <Badge variant="outline" className="text-xs">
+                          {job.contractType || 'Stage'}
+                        </Badge>
+                      </div>
+                      
+                      <div className="text-gray-600 mb-3">
+                        <p className="flex items-center mb-1">
+                          <Building className="w-4 h-4 mr-2" />
+                          {job.companyName || 'Entreprise'}
+                        </p>
+                        <p className="flex items-center mb-1">
+                          <MapPin className="w-4 h-4 mr-2" />
+                          {job.location || 'Lieu non spécifié'}
+                        </p>
+                        {job.duration && (
+                          <p className="flex items-center mb-1">
+                            <Clock className="w-4 h-4 mr-2" />
+                            {job.duration}
+                          </p>
+                        )}
+                        <p className="flex items-center">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          Publié le {new Date(job.createdAt).toLocaleDateString('fr-FR')}
+                        </p>
+                      </div>
+                      
+                      {job.description && (
+                        <p className="text-gray-700 mb-3 line-clamp-2">{job.description}</p>
+                      )}
+                      
+                      <div className="flex justify-between items-center">
+                        <div className="flex flex-wrap gap-2">
+                          {job.requiredSkills && job.requiredSkills.slice(0, 3).map((skill: string, index: number) => (
+                            <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                              {skill}
+                            </span>
+                          ))}
+                          {job.requiredSkills && job.requiredSkills.length > 3 && (
+                            <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                              +{job.requiredSkills.length - 3} autres
+                            </span>
+                          )}
+                        </div>
+                        
+                        {user?.role === 'student' && canApply() && (
+                          <Link href={`/jobs/${job.id}/apply`}>
+                            <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                              Candidater
+                            </Button>
+                          </Link>
+                        )}
+                        
+                        <Link href={`/jobs/${job.id}`}>
+                          <Button variant="outline" size="sm">
+                            Voir détails
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Briefcase className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">Aucune offre d'emploi disponible pour cette campagne.</p>
+                  {user?.role === 'company' && (
+                    <p className="text-sm text-gray-500 mt-2">
+                      Les entreprises peuvent ajouter des offres une fois invitées à cette campagne.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Informations limitées pour visiteurs non connectés */}
             {!isAuthenticated && (
