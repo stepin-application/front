@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Sparkles, Menu, X, Home, Megaphone, Building, LogIn, Briefcase, Mail, GraduationCap, Sun, Moon } from "lucide-react";
 import Link from 'next/link';
 import { Button } from './ui/button';
@@ -11,6 +12,7 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const { user, isAuthenticated, logout } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     const stored = localStorage.getItem('theme');
@@ -151,7 +153,11 @@ export default function Header() {
                   <>
                     <span className="text-sm text-gray-700 dark:text-gray-200 font-medium">{user?.name}</span>
                     <Button
-                      onClick={logout}
+                      onClick={() => {
+                        logout();
+                        router.push('/');
+                        router.refresh();
+                      }}
                       variant="outline"
                       size="sm"
                       className="text-sm"

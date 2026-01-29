@@ -27,6 +27,16 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const normalizeRole = (role: string | null | undefined): UserRole => {
+    if (!role) return null;
+    const value = role.toLowerCase();
+    if (value.startsWith('school')) return 'school';
+    if (value.startsWith('company')) return 'company';
+    if (value.startsWith('student')) return 'student';
+    if (value.startsWith('platform')) return 'platform_admin';
+    return null;
+  };
+
   const getStoredUser = () => {
     if (typeof window === 'undefined') return null;
     const storedUser = localStorage.getItem('user');
@@ -34,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const parsed = JSON.parse(storedUser);
       const normalizedRole = normalizeRole(parsed.role);
+      if (!normalizedRole) return null;
       return {
         ...parsed,
         role: normalizedRole,
@@ -44,16 +55,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const [user, setUser] = useState<User | null>(() => getStoredUser());
-
-  const normalizeRole = (role: string | null | undefined): UserRole => {
-    if (!role) return null;
-    const value = role.toLowerCase();
-    if (value.startsWith('school')) return 'school';
-    if (value.startsWith('company')) return 'company';
-    if (value.startsWith('student')) return 'student';
-    if (value.startsWith('platform')) return 'platform_admin';
-    return null;
-  };
 
   useEffect(() => {
     // Charger l'utilisateur depuis localStorage au démarrage (si pas encore en état)
@@ -80,11 +81,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!response.ok) throw new Error('Login failed');
 
       const data = await response.json();
+      const normalizedRole = normalizeRole(data.role);
+      if (!normalizedRole) {
+        throw new Error('Rôle utilisateur inconnu');
+      }
       const userData: User = {
         id: data.userId,
         email: data.email,
         name: data.name,
-        role: normalizeRole(data.role),
+        role: normalizedRole,
         companyId: data.companyId,
         schoolId: data.schoolId
       };
@@ -107,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
+    localStorage.removeItem('mustChangePassword');
     document.cookie = 'stepin_role=; path=/; max-age=0';
   };
 
