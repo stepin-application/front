@@ -2,24 +2,20 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { Campaign, StudentApplication, Notification } from '@/types/campaign'
-import { api, studentProfiles } from '@/lib/api'
+import { Campaign } from '@/types/campaign'
+import { studentProfiles, studentApplications } from '@/lib/api'
 import { campaigns, directory } from '@/lib/api'
-import { campaignPath } from '@/lib/utils'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { 
   TrendingUp, 
   Calendar, 
   Briefcase, 
-  Bell, 
-  Search, 
-  Filter,
+  Search,
   ChevronRight,
   MapPin,
   Clock,
   Star,
-  Eye,
   Send,
   CheckCircle,
   XCircle,
@@ -32,7 +28,6 @@ interface DashboardStats {
   totalApplications: number
   pendingApplications: number
   acceptedApplications: number
-  rejectedApplications: number
   newCampaigns: number
 }
 
@@ -46,12 +41,10 @@ export default function StudentDashboard() {
     totalApplications: 0,
     pendingApplications: 0,
     acceptedApplications: 0,
-    rejectedApplications: 0,
     newCampaigns: 0
   })
   const [recommendedCampaigns, setRecommendedCampaigns] = useState<Campaign[]>([])
-  const [recentApplications, setRecentApplications] = useState<StudentApplication[]>([])
-  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [recentApplications, setRecentApplications] = useState<any[]>([])
 
   // Vérifier si l'étudiant a un profil complet
   useEffect(() => {
@@ -123,12 +116,31 @@ export default function StudentDashboard() {
           totalApplications: 0,
           pendingApplications: 0,
           acceptedApplications: 0,
-          rejectedApplications: 0,
           newCampaigns: mappedCampaigns.length
         })
         setRecommendedCampaigns(mappedCampaigns.slice(0, 4))
-        setRecentApplications([])
-        setNotifications([])
+        
+        // Fetch recent applications and counts using the enriched API
+        try {
+          const applicationsResponse = await studentApplications.getMyEnrichedApplications()
+          const applicationsData = Array.isArray(applicationsResponse) ? applicationsResponse : []
+          setRecentApplications(applicationsData.slice(0, 3))
+          
+          setStats(prevStats => ({
+            ...prevStats,
+            totalApplications: applicationsData.length,
+            pendingApplications: applicationsData.filter(app => 
+              app.applicationStatus === 'submitted' || 
+              app.applicationStatus === 'selected_for_interview'
+            ).length,
+            acceptedApplications: applicationsData.filter(app => 
+              app.applicationStatus === 'decision_accepted'
+            ).length,
+          }))
+        } catch (error) {
+          console.error('Erreur lors du chargement des candidatures:', error)
+          setRecentApplications([])
+        }
       } catch (error) {
         console.error('Erreur lors du chargement du dashboard:', error)
       } finally {
@@ -139,37 +151,37 @@ export default function StudentDashboard() {
     fetchDashboardData()
   }, [user, router])
 
-  const getApplicationStatusIcon = (status: string) => {
+  const getApplicationStatusIcon = (status?: string) => {
     switch (status) {
       case 'submitted':
         return <Send className="w-4 h-4 text-blue-500" />
-      case 'reviewed':
-        return <Eye className="w-4 h-4 text-yellow-500" />
-      case 'accepted':
-        return <CheckCircle className="w-4 h-4 text-green-500" />
-      case 'rejected':
-        return <XCircle className="w-4 h-4 text-red-500" />
-      case 'interview_scheduled':
+      case 'selected_for_interview':
         return <Calendar className="w-4 h-4 text-purple-500" />
+      case 'not_selected_for_interview':
+        return <XCircle className="w-4 h-4 text-red-500" />
+      case 'decision_accepted':
+        return <CheckCircle className="w-4 h-4 text-green-500" />
+      case 'decision_rejected':
+        return <XCircle className="w-4 h-4 text-red-500" />
       default:
         return <AlertCircle className="w-4 h-4 text-gray-500" />
     }
   }
 
-  const getApplicationStatusText = (status: string) => {
+  const getApplicationStatusText = (status?: string) => {
     switch (status) {
       case 'submitted':
         return 'Envoyée'
-      case 'reviewed':
-        return 'En cours d\'examen'
-      case 'accepted':
+      case 'selected_for_interview':
+        return 'Sélectionnée pour entretien'
+      case 'not_selected_for_interview':
+        return 'Non retenue'
+      case 'decision_accepted':
         return 'Acceptée'
-      case 'rejected':
+      case 'decision_rejected':
         return 'Refusée'
-      case 'interview_scheduled':
-        return 'Entretien programmé'
       default:
-        return 'Statut inconnu'
+        return status || 'Statut inconnu'
     }
   }
 
@@ -251,7 +263,7 @@ export default function StudentDashboard() {
 
         {/* Statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+          <Link href="/students/applications" className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
             <div className="flex items-center">
               <div className="p-2 bg-blue-100 rounded-lg">
                 <Briefcase className="w-6 h-6 text-blue-600" />
@@ -261,9 +273,9 @@ export default function StudentDashboard() {
                 <p className="text-2xl font-bold text-gray-900">{stats.totalApplications}</p>
               </div>
             </div>
-          </div>
+          </Link>
 
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+          <Link href="/students/applications?status=pending" className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
             <div className="flex items-center">
               <div className="p-2 bg-yellow-100 rounded-lg">
                 <Clock className="w-6 h-6 text-yellow-600" />
@@ -273,9 +285,9 @@ export default function StudentDashboard() {
                 <p className="text-2xl font-bold text-gray-900">{stats.pendingApplications}</p>
               </div>
             </div>
-          </div>
+          </Link>
 
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+          <Link href="/students/applications?status=accepted" className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
             <div className="flex items-center">
               <div className="p-2 bg-green-100 rounded-lg">
                 <CheckCircle className="w-6 h-6 text-green-600" />
@@ -285,9 +297,9 @@ export default function StudentDashboard() {
                 <p className="text-2xl font-bold text-gray-900">{stats.acceptedApplications}</p>
               </div>
             </div>
-          </div>
+          </Link>
 
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+          <Link href="/campaigns" className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
             <div className="flex items-center">
               <div className="p-2 bg-purple-100 rounded-lg">
                 <TrendingUp className="w-6 h-6 text-purple-600" />
@@ -297,7 +309,7 @@ export default function StudentDashboard() {
                 <p className="text-2xl font-bold text-gray-900">{stats.newCampaigns}</p>
               </div>
             </div>
-          </div>
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -352,7 +364,7 @@ export default function StudentDashboard() {
                           </div>
                           <div className="ml-4">
                             <Link
-                              href={campaignPath(campaign.id, campaign.title)}
+                              href={`/campaigns/${campaign.id}`}
                               className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
                             >
                               Voir détails
@@ -399,68 +411,33 @@ export default function StudentDashboard() {
               <div className="p-6">
                 {recentApplications.length > 0 ? (
                   <div className="space-y-3">
-                    {recentApplications.map((application) => (
-                      <div key={application.id} className="flex items-center justify-between py-2">
+                    {recentApplications.map((application: any) => (
+                      <Link
+                        key={application.id}
+                        href="/students/applications"
+                        className="flex items-center justify-between py-2 hover:bg-gray-50 rounded-lg px-2 transition-colors cursor-pointer"
+                      >
                         <div className="flex items-center">
-                          {getApplicationStatusIcon(application.status)}
+                          {getApplicationStatusIcon(application.applicationStatus)}
                           <div className="ml-3">
                             <p className="text-sm font-medium text-gray-900 truncate">
-                              {application.jobOpeningId}
+                              {application.jobTitle || 'Offre d\'emploi'}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {getApplicationStatusText(application.status)}
+                              {application.companyName || 'Entreprise'} • {getApplicationStatusText(application.applicationStatus)}
                             </p>
                           </div>
                         </div>
                         <span className="text-xs text-gray-400">
-                          {new Date(application.submittedAt).toLocaleDateString()}
+                          {application.appliedAt ? new Date(application.appliedAt).toLocaleDateString() : '—'}
                         </span>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 ) : (
                   <div className="text-center py-4">
                     <Briefcase className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                     <p className="text-sm text-gray-600">Aucune candidature</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Notifications */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                  <Bell className="w-5 h-5 mr-2" />
-                  Notifications
-                </h3>
-              </div>
-              <div className="p-6">
-                {notifications.length > 0 ? (
-                  <div className="space-y-3">
-                    {notifications.map((notification) => (
-                      <div key={notification.id} className="flex items-start space-x-3">
-                        <div className="flex-shrink-0">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">
-                            {notification.title}
-                          </p>
-                          <p className="text-xs text-gray-600 mt-1">
-                            {notification.message}
-                          </p>
-                          <p className="text-xs text-gray-400 mt-1">
-                            {new Date(notification.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <Bell className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600">Aucune notification</p>
                   </div>
                 )}
               </div>

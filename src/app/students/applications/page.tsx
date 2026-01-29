@@ -2,53 +2,63 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { StudentApplication, ApplicationStatus } from '@/types/campaign'
-import { api } from '@/lib/api'
-import { useRouter } from 'next/navigation'
+import { ApplicationStatus } from '@/types/campaign'
+import { studentApplications } from '@/lib/api'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { 
   Search, 
-  Filter, 
   Calendar, 
   MapPin, 
-  Building, 
   Clock,
   Send,
-  Eye,
   CheckCircle,
   XCircle,
   AlertCircle,
-  ExternalLink,
   Download,
   MessageSquare
 } from 'lucide-react'
 
-interface ApplicationWithDetails extends StudentApplication {
-  campaign: {
-    id: string
-    title: string
-    createdBy: {
-      name: string
-      logo: string
-    }
-    location: string
-    studentDeadline: string
-  }
-  jobOpening: {
-    title: string
-    contractType: string
-    location: string
-  }
+interface ApplicationWithDetails {
+  id: string
+  studentId: string
+  campaignId: string
+  jobId: string
+  companyId: string
+  coverLetter?: string
+  cvFilePath?: string
+  applicationStatus: string
+  appliedAt: string
+  updatedAt: string
+  // Enriched data from backend
+  campaignTitle?: string
+  jobTitle?: string
+  jobLocation?: string
+  companyName?: string
+  contractType?: string
 }
 
 export default function StudentApplications() {
   const { user } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [applications, setApplications] = useState<ApplicationWithDetails[]>([])
   const [filteredApplications, setFilteredApplications] = useState<ApplicationWithDetails[]>([])
   const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<ApplicationStatus | 'all'>('all')
+  const [statusFilter, setStatusFilter] = useState<ApplicationStatus | 'all' | 'pending'>('all')
   const [sortBy, setSortBy] = useState<'date' | 'status' | 'company'>('date')
+
+  // Handle URL parameters for initial filtering
+  useEffect(() => {
+    const statusParam = searchParams.get('status')
+    if (statusParam === 'pending') {
+      setStatusFilter('submitted') // Default to submitted for pending
+    } else if (statusParam === 'accepted') {
+      setStatusFilter('decision_accepted')
+    } else if (statusParam && ['submitted', 'selected_for_interview', 'not_selected_for_interview', 'decision_accepted', 'decision_rejected'].includes(statusParam)) {
+      setStatusFilter(statusParam as ApplicationStatus)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if (!user || user.role !== 'student') {
@@ -58,21 +68,12 @@ export default function StudentApplications() {
 
     const fetchApplications = async () => {
       try {
-        const response = await api.get('/students/applications')
-        const data =
-          response && typeof response === 'object' && 'data' in response
-            ? (response as any).data
-            : response
-        const list = Array.isArray(data) ? data : []
+        const applications = await studentApplications.getMyEnrichedApplications()
+        const list = Array.isArray(applications) ? applications : []
+        
         setApplications(list)
         setFilteredApplications(list)
       } catch (error: any) {
-        const message = error?.message || ''
-        if (message.includes('No static resource') || message.includes('HTTP 404')) {
-          setApplications([])
-          setFilteredApplications([])
-          return
-        }
         console.error('Erreur lors du chargement des candidatures:', error)
         setApplications([])
         setFilteredApplications([])
@@ -90,26 +91,37 @@ export default function StudentApplications() {
     // Filtrage par recherche
     if (searchQuery) {
       filtered = filtered.filter(app => 
-        app.campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        app.campaign.createdBy.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        app.jobOpening.title.toLowerCase().includes(searchQuery.toLowerCase())
+        app.campaignTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        app.jobTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        app.companyName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        app.campaignId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        app.jobId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        app.companyId.toLowerCase().includes(searchQuery.toLowerCase())
       )
     }
 
     // Filtrage par statut
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(app => app.status === statusFilter)
+      if (statusFilter === 'pending') {
+        // Special case for pending: includes submitted and selected_for_interview
+        filtered = filtered.filter(app => 
+          app.applicationStatus === 'submitted' || 
+          app.applicationStatus === 'selected_for_interview'
+        )
+      } else {
+        filtered = filtered.filter(app => app.applicationStatus === statusFilter)
+      }
     }
 
     // Tri
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'date':
-          return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+          return new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime()
         case 'status':
-          return a.status.localeCompare(b.status)
+          return a.applicationStatus.localeCompare(b.applicationStatus)
         case 'company':
-          return a.campaign.createdBy.name.localeCompare(b.campaign.createdBy.name)
+          return (a.companyName || a.companyId).localeCompare(b.companyName || b.companyId)
         default:
           return 0
       }
@@ -118,79 +130,69 @@ export default function StudentApplications() {
     setFilteredApplications(filtered)
   }, [applications, searchQuery, statusFilter, sortBy])
 
-  const getStatusIcon = (status: ApplicationStatus) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case 'submitted':
         return <Send className="w-5 h-5 text-blue-500" />
-      case 'reviewed':
-        return <Eye className="w-5 h-5 text-yellow-500" />
-      case 'shortlisted':
-        return <AlertCircle className="w-5 h-5 text-orange-500" />
-      case 'interview_scheduled':
+      case 'selected_for_interview':
         return <Calendar className="w-5 h-5 text-purple-500" />
-      case 'accepted':
+      case 'not_selected_for_interview':
+        return <XCircle className="w-5 h-5 text-red-500" />
+      case 'decision_accepted':
         return <CheckCircle className="w-5 h-5 text-green-500" />
-      case 'rejected':
+      case 'decision_rejected':
         return <XCircle className="w-5 h-5 text-red-500" />
       default:
         return <AlertCircle className="w-5 h-5 text-gray-500" />
     }
   }
 
-  const getStatusText = (status: ApplicationStatus) => {
+  const getStatusText = (status: string) => {
     switch (status) {
       case 'submitted':
         return 'Envoyée'
-      case 'reviewed':
-        return 'En cours d\'examen'
-      case 'shortlisted':
-        return 'Présélectionnée'
-      case 'interview_scheduled':
-        return 'Entretien programmé'
-      case 'accepted':
+      case 'selected_for_interview':
+        return 'Sélectionnée pour entretien'
+      case 'not_selected_for_interview':
+        return 'Non retenue'
+      case 'decision_accepted':
         return 'Acceptée'
-      case 'rejected':
+      case 'decision_rejected':
         return 'Refusée'
       default:
-        return 'Statut inconnu'
+        return status || 'Statut inconnu'
     }
   }
 
-  const getStatusColor = (status: ApplicationStatus) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'submitted':
         return 'bg-blue-100 text-blue-800'
-      case 'reviewed':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'shortlisted':
-        return 'bg-orange-100 text-orange-800'
-      case 'interview_scheduled':
+      case 'selected_for_interview':
         return 'bg-purple-100 text-purple-800'
-      case 'accepted':
+      case 'not_selected_for_interview':
+        return 'bg-red-100 text-red-800'
+      case 'decision_accepted':
         return 'bg-green-100 text-green-800'
-      case 'rejected':
+      case 'decision_rejected':
         return 'bg-red-100 text-red-800'
       default:
         return 'bg-gray-100 text-gray-800'
     }
   }
 
-  const getProgressPercentage = (status: ApplicationStatus) => {
+  const getProgressPercentage = (status: string) => {
     switch (status) {
       case 'submitted':
-        return 20
-      case 'reviewed':
-        return 40
-      case 'shortlisted':
-        return 60
-      case 'interview_scheduled':
-        return 80
-      case 'accepted':
-        return 100
-      case 'rejected':
-        return 100
+        return 33 // Envoyée
+      case 'selected_for_interview':
+        return 66 // Sélectionnée
+      case 'not_selected_for_interview':
+      case 'decision_accepted':
+      case 'decision_rejected':
+        return 100 // Décision
       default:
-        return 0
+        return 33
     }
   }
 
@@ -236,16 +238,16 @@ export default function StudentApplications() {
             <div className="lg:w-48">
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as ApplicationStatus | 'all')}
+                onChange={(e) => setStatusFilter(e.target.value as ApplicationStatus | 'all' | 'pending')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">Tous les statuts</option>
+                <option value="pending">En attente</option>
                 <option value="submitted">Envoyées</option>
-                <option value="reviewed">En examen</option>
-                <option value="shortlisted">Présélectionnées</option>
-                <option value="interview_scheduled">Entretien programmé</option>
-                <option value="accepted">Acceptées</option>
-                <option value="rejected">Refusées</option>
+                <option value="selected_for_interview">Sélectionnées pour entretien</option>
+                <option value="not_selected_for_interview">Non retenues</option>
+                <option value="decision_accepted">Acceptées</option>
+                <option value="decision_rejected">Refusées</option>
               </select>
             </div>
 
@@ -274,36 +276,40 @@ export default function StudentApplications() {
                     <div className="flex items-start space-x-4">
                       <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                         <span className="text-blue-600 font-bold text-lg">
-                          {application.campaign.createdBy.name.charAt(0)}
+                          {(application.companyName || application.companyId).charAt(0).toUpperCase()}
                         </span>
                       </div>
                       <div className="flex-1">
                         <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                          {application.jobOpening.title}
+                          {application.jobTitle || `Offre d'emploi`}
                         </h3>
                         <p className="text-gray-600 mb-2">
-                          {application.campaign.createdBy.name} • {application.campaign.title}
+                          {application.companyName || `Entreprise`} • {application.campaignTitle || `Campagne`}
                         </p>
                         <div className="flex items-center text-sm text-gray-500 space-x-4">
-                          <span className="flex items-center">
-                            <MapPin className="w-4 h-4 mr-1" />
-                            {application.jobOpening.location}
-                          </span>
-                          <span className="flex items-center">
-                            <Building className="w-4 h-4 mr-1" />
-                            {application.jobOpening.contractType}
-                          </span>
+                          {application.jobLocation && (
+                            <span className="flex items-center">
+                              <MapPin className="w-4 h-4 mr-1" />
+                              {application.jobLocation}
+                            </span>
+                          )}
+                          {application.contractType && (
+                            <span className="flex items-center">
+                              <Calendar className="w-4 h-4 mr-1" />
+                              {application.contractType}
+                            </span>
+                          )}
                           <span className="flex items-center">
                             <Clock className="w-4 h-4 mr-1" />
-                            Candidature envoyée le {new Date(application.submittedAt).toLocaleDateString()}
+                            Candidature envoyée le {new Date(application.appliedAt).toLocaleDateString()}
                           </span>
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(application.status)}`}>
-                        {getStatusIcon(application.status)}
-                        <span className="ml-2">{getStatusText(application.status)}</span>
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(application.applicationStatus)}`}>
+                        {getStatusIcon(application.applicationStatus)}
+                        <span className="ml-2">{getStatusText(application.applicationStatus)}</span>
                       </span>
                     </div>
                   </div>
@@ -312,15 +318,15 @@ export default function StudentApplications() {
                   <div className="mb-4">
                     <div className="flex justify-between text-sm text-gray-600 mb-2">
                       <span>Progression de la candidature</span>
-                      <span>{getProgressPercentage(application.status)}%</span>
+                      <span>{getProgressPercentage(application.applicationStatus)}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
                         className={`h-2 rounded-full transition-all duration-300 ${
-                          application.status === 'accepted' ? 'bg-green-500' :
-                          application.status === 'rejected' ? 'bg-red-500' : 'bg-blue-500'
+                          application.applicationStatus === 'decision_accepted' ? 'bg-green-500' :
+                          application.applicationStatus === 'decision_rejected' || application.applicationStatus === 'not_selected_for_interview' ? 'bg-red-500' : 'bg-blue-500'
                         }`}
-                        style={{ width: `${getProgressPercentage(application.status)}%` }}
+                        style={{ width: `${getProgressPercentage(application.applicationStatus)}%` }}
                       ></div>
                     </div>
                   </div>
@@ -328,29 +334,21 @@ export default function StudentApplications() {
                   {/* Timeline des étapes */}
                   <div className="mb-4">
                     <div className="flex items-center justify-between text-xs text-gray-500">
-                      <div className={`flex flex-col items-center ${getProgressPercentage(application.status) >= 20 ? 'text-blue-600' : ''}`}>
-                        <div className={`w-3 h-3 rounded-full ${getProgressPercentage(application.status) >= 20 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                      <div className={`flex flex-col items-center ${getProgressPercentage(application.applicationStatus) >= 33 ? 'text-blue-600' : ''}`}>
+                        <div className={`w-3 h-3 rounded-full ${getProgressPercentage(application.applicationStatus) >= 33 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
                         <span className="mt-1">Envoyée</span>
                       </div>
-                      <div className={`flex flex-col items-center ${getProgressPercentage(application.status) >= 40 ? 'text-blue-600' : ''}`}>
-                        <div className={`w-3 h-3 rounded-full ${getProgressPercentage(application.status) >= 40 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
-                        <span className="mt-1">Examinée</span>
-                      </div>
-                      <div className={`flex flex-col items-center ${getProgressPercentage(application.status) >= 60 ? 'text-orange-600' : ''}`}>
-                        <div className={`w-3 h-3 rounded-full ${getProgressPercentage(application.status) >= 60 ? 'bg-orange-500' : 'bg-gray-300'}`}></div>
-                        <span className="mt-1">Présélectionnée</span>
-                      </div>
-                      <div className={`flex flex-col items-center ${getProgressPercentage(application.status) >= 80 ? 'text-purple-600' : ''}`}>
-                        <div className={`w-3 h-3 rounded-full ${getProgressPercentage(application.status) >= 80 ? 'bg-purple-500' : 'bg-gray-300'}`}></div>
-                        <span className="mt-1">Entretien</span>
+                      <div className={`flex flex-col items-center ${getProgressPercentage(application.applicationStatus) >= 66 ? 'text-orange-600' : ''}`}>
+                        <div className={`w-3 h-3 rounded-full ${getProgressPercentage(application.applicationStatus) >= 66 ? 'bg-orange-500' : 'bg-gray-300'}`}></div>
+                        <span className="mt-1">Sélectionnée</span>
                       </div>
                       <div className={`flex flex-col items-center ${
-                        application.status === 'accepted' ? 'text-green-600' : 
-                        application.status === 'rejected' ? 'text-red-600' : ''
+                        application.applicationStatus === 'decision_accepted' ? 'text-green-600' : 
+                        application.applicationStatus === 'decision_rejected' || application.applicationStatus === 'not_selected_for_interview' ? 'text-red-600' : ''
                       }`}>
                         <div className={`w-3 h-3 rounded-full ${
-                          application.status === 'accepted' ? 'bg-green-500' : 
-                          application.status === 'rejected' ? 'bg-red-500' : 'bg-gray-300'
+                          application.applicationStatus === 'decision_accepted' ? 'bg-green-500' : 
+                          application.applicationStatus === 'decision_rejected' || application.applicationStatus === 'not_selected_for_interview' ? 'bg-red-500' : 'bg-gray-300'
                         }`}></div>
                         <span className="mt-1">Décision</span>
                       </div>
@@ -360,52 +358,23 @@ export default function StudentApplications() {
                   {/* Actions et informations supplémentaires */}
                   <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                     <div className="flex items-center space-x-4">
-                      {application.cvUrl && (
-                        <button className="flex items-center text-sm text-gray-600 hover:text-blue-600 transition-colors">
+                      {application.cvFilePath && (
+                        <span className="flex items-center text-sm text-gray-600">
                           <Download className="w-4 h-4 mr-1" />
                           CV envoyé
-                        </button>
+                        </span>
                       )}
-                      {application.teamsLink && (
-                        <a
-                          href={application.teamsLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center text-sm text-purple-600 hover:text-purple-700 transition-colors"
-                        >
-                          <ExternalLink className="w-4 h-4 mr-1" />
-                          Rejoindre l'entretien
-                        </a>
-                      )}
-                      {application.companyFeedback && (
-                        <button className="flex items-center text-sm text-gray-600 hover:text-blue-600 transition-colors">
+                      {application.coverLetter && (
+                        <span className="flex items-center text-sm text-gray-600">
                           <MessageSquare className="w-4 h-4 mr-1" />
-                          Feedback reçu
-                        </button>
+                          Lettre de motivation
+                        </span>
                       )}
                     </div>
                     <div className="text-sm text-gray-500">
-                      Dernière mise à jour: {new Date(application.lastUpdated).toLocaleDateString()}
+                      Dernière mise à jour: {new Date(application.updatedAt).toLocaleDateString()}
                     </div>
                   </div>
-
-                  {/* Feedback de l'entreprise */}
-                  {application.companyFeedback && (
-                    <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                      <h4 className="text-sm font-medium text-gray-900 mb-2">Feedback de l'entreprise:</h4>
-                      <p className="text-sm text-gray-700">{application.companyFeedback}</p>
-                    </div>
-                  )}
-
-                  {/* Date d'entretien */}
-                  {application.interviewDate && (
-                    <div className="mt-4 p-4 bg-purple-50 rounded-lg">
-                      <h4 className="text-sm font-medium text-purple-900 mb-2">Entretien programmé:</h4>
-                      <p className="text-sm text-purple-700">
-                        {new Date(application.interviewDate).toLocaleDateString()} à {new Date(application.interviewDate).toLocaleTimeString()}
-                      </p>
-                    </div>
-                  )}
                 </div>
               </div>
             ))}

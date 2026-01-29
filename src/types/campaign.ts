@@ -4,7 +4,7 @@ export type CampaignStatus = 'OPEN' | 'LOCKED' | 'CLOSED' | 'active' | 'upcoming
 export type InvitationStatus = 'INVITED' | 'ACCEPTED' | 'REFUSED';
 export type UserRole = 'school' | 'company' | 'student' | 'platform_admin';
 export type ContractType = 'stage' | 'cdi' | 'cdd' | 'alternance';
-export type ApplicationStatus = 'submitted' | 'reviewed' | 'shortlisted' | 'interview_scheduled' | 'accepted' | 'rejected';
+export type ApplicationStatus = 'submitted' | 'selected_for_interview' | 'not_selected_for_interview' | 'decision_accepted' | 'decision_rejected';
 
 export interface School {
   id: string;
@@ -81,17 +81,37 @@ export interface Student {
 export interface StudentApplication {
   id: string;
   campaignId: string;
-  jobOpeningId: string;
+  jobOpeningId?: string;
+  jobId?: string; // Alternative field name
   studentId: string;
+  companyId?: string;
   status: ApplicationStatus;
-  cvUrl: string;
-  coverLetter: string;
-  submittedAt: string;
-  lastUpdated: string;
+  applicationStatus?: string; // New backend field
+  displayStatus?: string; // New backend display field
+  cvUrl?: string;
+  cvFilePath?: string; // Alternative field name
+  coverLetter?: string;
+  submittedAt?: string;
+  appliedAt?: string; // Alternative field name
+  lastUpdated?: string;
+  updatedAt?: string; // Alternative field name
   companyFeedback?: string;
   interviewDate?: string;
+  interviewScheduledAt?: string; // Alternative field name
   matchScore?: number; // Score ML pour le matching
+  aiMatchScore?: number; // Alternative field name
+  aiMatchReasoning?: string;
   teamsLink?: string; // Lien Teams pour l'entretien
+  teamsMeetingUrl?: string; // Alternative field name
+}
+
+export interface ApplicationEligibility {
+  studentId: string;
+  jobId: string;
+  hasExistingApplication: boolean;
+  applicationId?: string;
+  applicationStatus?: string;
+  appliedAt?: string;
 }
 
 export interface Invitation {
