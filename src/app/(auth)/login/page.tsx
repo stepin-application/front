@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowLeft } from 'lucide-react';
 import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,6 +24,12 @@ export default function LoginPage() {
       const result = await login(email, password);
       if (result.mustChangePassword) {
         router.push("/change-password");
+        return;
+      }
+
+      const redirectTo = searchParams.get("redirect");
+      if (redirectTo) {
+        router.push(redirectTo);
       } else {
         router.push("/");
       }

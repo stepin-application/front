@@ -13,23 +13,13 @@ import {
   Plus,
   Trash2,
   Info,
-  Search,
-  CheckCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { companiesData, Company } from "@/data/companiesData";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Company } from "@/data/companiesData";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -52,10 +42,8 @@ export default function NewSchoolCampaignPage() {
     benefits: [""],
     tags: [""],
     invitedCompanies: [] as Company[],
-    invitedCompanyEmails: [""], // Liste d'emails d'entreprises
   });
 
-  const [searchCompany, setSearchCompany] = useState("");
   const [selectedCompanies, setSelectedCompanies] = useState<Company[]>([]);
 
   const tooltips = {
@@ -77,9 +65,6 @@ export default function NewSchoolCampaignPage() {
       "Critères que les entreprises doivent remplir pour participer",
     benefits: "Avantages pour les entreprises participantes",
     tags: "Mots-clés permettant de catégoriser votre campagne",
-    companies: "Sélectionnez les entreprises à inviter à votre campagne",
-    emails:
-      "Ajoutez des emails d'entreprises qui recevront automatiquement une notification de création de campagne",
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -132,6 +117,7 @@ export default function NewSchoolCampaignPage() {
       name: formData.title,
       description: formData.description,
       deadline: new Date(formData.companyDeadline).toISOString(),
+      startDate: new Date(formData.startDate).toISOString(),
     });
 
     if (!campaign) {
@@ -155,7 +141,7 @@ export default function NewSchoolCampaignPage() {
   };
 
   const handleArrayChange = (
-    field: "requirements" | "benefits" | "tags" | "invitedCompanyEmails",
+    field: "requirements" | "benefits" | "tags",
     index: number,
     value: string,
   ) => {
@@ -166,7 +152,7 @@ export default function NewSchoolCampaignPage() {
   };
 
   const addArrayItem = (
-    field: "requirements" | "benefits" | "tags" | "invitedCompanyEmails",
+    field: "requirements" | "benefits" | "tags",
   ) => {
     setFormData((prev) => ({
       ...prev,
@@ -175,28 +161,13 @@ export default function NewSchoolCampaignPage() {
   };
 
   const removeArrayItem = (
-    field: "requirements" | "benefits" | "tags" | "invitedCompanyEmails",
+    field: "requirements" | "benefits" | "tags",
     index: number,
   ) => {
     setFormData((prev) => ({
       ...prev,
       [field]: prev[field].filter((_, i) => i !== index),
     }));
-  };
-
-  const filteredCompanies = companiesData.filter(
-    (company) =>
-      company.name.toLowerCase().includes(searchCompany.toLowerCase()) ||
-      company.industry.toLowerCase().includes(searchCompany.toLowerCase()) ||
-      company.location.toLowerCase().includes(searchCompany.toLowerCase()),
-  );
-
-  const toggleCompanySelection = (company: Company) => {
-    if (selectedCompanies.find((c) => c.id === company.id)) {
-      setSelectedCompanies((prev) => prev.filter((c) => c.id !== company.id));
-    } else {
-      setSelectedCompanies((prev) => [...prev, company]);
-    }
   };
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -224,7 +195,7 @@ export default function NewSchoolCampaignPage() {
             Créer une nouvelle campagne école
           </h1>
           <p className="text-gray-500">
-            Créez votre événement et invitez des entreprises à participer
+            Créez votre événement et préparez la campagne
           </p>
         </div>
 
@@ -584,159 +555,6 @@ export default function NewSchoolCampaignPage() {
             >
               <Plus className="w-4 h-4 mr-2" />
               Ajouter un avantage
-            </Button>
-          </div>
-
-          {/* Entreprises */}
-          <div className="space-y-4 border-2 border-dashed border-gray-300 rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
-                Inviter des entreprises
-                <div className="group relative">
-                  <Info className="h-4 w-4 text-gray-400 cursor-help" />
-                  <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                    {tooltips.companies}
-                  </div>
-                </div>
-              </h2>
-            </div>
-
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="w-full">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Sélectionner des entreprises
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Sélectionner des entreprises</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      placeholder="Rechercher une entreprise..."
-                      value={searchCompany}
-                      onChange={(e) => setSearchCompany(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto">
-                    {filteredCompanies.map((company) => (
-                      <div
-                        key={company.id}
-                        className={`flex items-center justify-between p-3 rounded-lg border ${
-                          selectedCompanies.find((c) => c.id === company.id)
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-gray-200 hover:border-blue-500"
-                        } cursor-pointer transition-colors duration-200`}
-                        onClick={() => toggleCompanySelection(company)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={company.logo} />
-                            <AvatarFallback>{company.name[0]}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              {company.name}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {company.industry} • {company.location}
-                            </p>
-                          </div>
-                        </div>
-                        {selectedCompanies.find((c) => c.id === company.id) && (
-                          <CheckCircle className="h-5 w-5 text-blue-500" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            {selectedCompanies.length > 0 && (
-              <div className="mt-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-2">
-                  Entreprises sélectionnées
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {selectedCompanies.map((company) => (
-                    <Badge
-                      key={company.id}
-                      variant="outline"
-                      className="flex items-center gap-1"
-                    >
-                      <Avatar className="h-4 w-4">
-                        <AvatarImage src={company.logo} />
-                        <AvatarFallback>{company.name[0]}</AvatarFallback>
-                      </Avatar>
-                      {company.name}
-                      <button
-                        type="button"
-                        onClick={() => toggleCompanySelection(company)}
-                        className="ml-1 hover:text-red-500"
-                      >
-                        ×
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Emails d'entreprises */}
-          <div className="space-y-4 border-2 border-dashed border-gray-300 rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
-                Emails d'entreprises à notifier
-                <div className="group relative">
-                  <Info className="h-4 w-4 text-gray-400 cursor-help" />
-                  <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                    {tooltips.emails}
-                  </div>
-                </div>
-              </h2>
-            </div>
-            <p className="text-sm text-gray-600">
-              Ces entreprises recevront automatiquement un email de notification
-              lors de la création de la campagne.
-            </p>
-            {formData.invitedCompanyEmails.map((email, index) => (
-              <div key={index} className="flex gap-2">
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) =>
-                    handleArrayChange(
-                      "invitedCompanyEmails",
-                      index,
-                      e.target.value,
-                    )
-                  }
-                  placeholder="Ex: recrutement@entreprise.com"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => removeArrayItem("invitedCompanyEmails", index)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => addArrayItem("invitedCompanyEmails")}
-              className="w-full"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Ajouter un email
             </Button>
           </div>
 

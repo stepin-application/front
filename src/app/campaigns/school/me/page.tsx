@@ -20,6 +20,7 @@ interface Campaign {
   invitedCount: number;
   acceptedCount: number;
   createdAt: string;
+  lockedAt?: string;
 }
 
 export default function SchoolCampaignsPage() {
@@ -126,10 +127,17 @@ export default function SchoolCampaignsPage() {
                     </div>
                     <p className="text-sm text-gray-600 mb-3 line-clamp-2">{campaign.description}</p>
                     <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <span>📅 {new Date(campaign.startDate).toLocaleDateString('fr-FR')}</span>
+                      <span>
+                        📅 {campaign.startDate || campaign.createdAt
+                          ? new Date(campaign.startDate || campaign.createdAt).toLocaleDateString('fr-FR')
+                          : '—'}
+                      </span>
                       <span>⏰ Deadline: {new Date(campaign.deadline).toLocaleDateString('fr-FR')}</span>
-                      <span>📧 {campaign.invitedCount} invitées</span>
-                      <span className="text-green-600 font-medium">✅ {campaign.acceptedCount} participantes</span>
+                      {campaign.lockedAt && (
+                        <span>Clôture: {new Date(campaign.lockedAt).toLocaleDateString('fr-FR')}</span>
+                      )}
+                      <span>{campaign.invitedCount}</span>
+                      <span className="text-green-600 font-medium">{campaign.acceptedCount}</span>
                     </div>
                   </div>
                 </div>

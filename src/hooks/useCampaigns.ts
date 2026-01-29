@@ -9,6 +9,7 @@ interface CreateCampaignData {
   name: string;
   description: string;
   deadline: string;
+  startDate: string;
 }
 
 interface UseCampaignsReturn {
@@ -53,7 +54,7 @@ export function useCampaigns(): UseCampaignsReturn {
       description: campaign?.description ?? '',
       companyDeadline: campaign?.deadline ?? '',
       studentDeadline: campaign?.deadline ?? '',
-      startDate: campaign?.createdAt ?? '',
+      startDate: campaign?.startDate ?? campaign?.createdAt ?? '',
       endDate: campaign?.deadline ?? '',
       location: campaign?.location ?? '—',
       status: campaign?.status ?? 'OPEN',
@@ -128,8 +129,11 @@ export function useCampaigns(): UseCampaignsReturn {
       if (!data.deadline) {
         throw new Error('La deadline est requise');
       }
-
+      if (!data.startDate) {
+        throw new Error('La date de debut est requise');
+      }
       const deadlineDate = new Date(data.deadline);
+      const startDate = new Date(data.startDate);
       if (deadlineDate <= new Date()) {
         throw new Error('La deadline doit être dans le futur');
       }
@@ -193,6 +197,12 @@ export function useCampaigns(): UseCampaignsReturn {
         const deadlineDate = new Date(data.deadline);
         if (deadlineDate <= new Date()) {
           throw new Error('La deadline doit être dans le futur');
+        }
+        if (data.startDate !== undefined) {
+          const startDate = new Date(data.startDate);
+          if (deadlineDate < startDate) {
+            throw new Error('La deadline doit être après la date de début');
+          }
         }
       }
 

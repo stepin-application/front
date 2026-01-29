@@ -47,7 +47,10 @@ export default function CompanyInvitationsPage() {
     try {
       const storedUser = localStorage.getItem('user');
       const companyId = storedUser ? JSON.parse(storedUser)?.companyId : null;
-      if (!companyId) throw new Error('Missing company id');
+      if (!companyId) {
+        router.push('/login?redirect=/campaigns/company/invitations');
+        return;
+      }
 
       const [data, schools] = await Promise.all([
         invitationsApi.getByCompany(companyId),
