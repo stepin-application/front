@@ -1,13 +1,30 @@
 // Service API centralisé avec support multi-services
 import { getServiceUrl, API_CONFIG } from "@/config/api.config";
 
-function getAuthHeaders() {
+function getAuthHeaders(includeStudentId = false) {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  return {
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(token && { Authorization: `Bearer ${token}` }),
   };
+  
+  // Add student ID header if requested and user is a student
+  if (includeStudentId && typeof window !== "undefined") {
+    const user = localStorage.getItem("user");
+    if (user) {
+      try {
+        const userData = JSON.parse(user);
+        if (userData.role === "student" && userData.id) {
+          headers["X-Student-Id"] = userData.id;
+        }
+      } catch (e) {
+        console.warn("Failed to parse user data for student ID header");
+      }
+    }
+  }
+  
+  return headers;
 }
 
 async function handleResponse(response: Response) {
@@ -57,12 +74,13 @@ async function retryRequest<T>(
 // API générique pour un service spécifique
 function createApiClient(service: "campaign" | "job" | "auth" | "student") {
   const baseUrl = getServiceUrl(service);
+  const needsStudentId = service === "student";
 
   return {
     get: (url: string) =>
       retryRequest(() =>
         fetch(`${baseUrl}${url}`, {
-          headers: getAuthHeaders(),
+          headers: getAuthHeaders(needsStudentId),
           signal: AbortSignal.timeout(API_CONFIG.TIMEOUT),
         }).then(handleResponse),
       ),
@@ -71,7 +89,7 @@ function createApiClient(service: "campaign" | "job" | "auth" | "student") {
       retryRequest(() =>
         fetch(`${baseUrl}${url}`, {
           method: "POST",
-          headers: getAuthHeaders(),
+          headers: getAuthHeaders(needsStudentId),
           body: data ? JSON.stringify(data) : undefined,
           signal: AbortSignal.timeout(API_CONFIG.TIMEOUT),
         }).then(handleResponse),
@@ -81,7 +99,7 @@ function createApiClient(service: "campaign" | "job" | "auth" | "student") {
       retryRequest(() =>
         fetch(`${baseUrl}${url}`, {
           method: "PUT",
-          headers: getAuthHeaders(),
+          headers: getAuthHeaders(needsStudentId),
           body: data ? JSON.stringify(data) : undefined,
           signal: AbortSignal.timeout(API_CONFIG.TIMEOUT),
         }).then(handleResponse),
@@ -91,7 +109,7 @@ function createApiClient(service: "campaign" | "job" | "auth" | "student") {
       retryRequest(() =>
         fetch(`${baseUrl}${url}`, {
           method: "DELETE",
-          headers: getAuthHeaders(),
+          headers: getAuthHeaders(needsStudentId),
           signal: AbortSignal.timeout(API_CONFIG.TIMEOUT),
         }).then(handleResponse),
       ),
@@ -103,8 +121,11 @@ function createApiClient(service: "campaign" | "job" | "auth" | "student") {
           method: "POST",
           headers: {
             // Ne pas spécifier Content-Type pour les fichiers FormData
-            ...(getAuthHeaders().Authorization && {
-              Authorization: getAuthHeaders().Authorization,
+            ...(getAuthHeaders(needsStudentId).Authorization && {
+              Authorization: getAuthHeaders(needsStudentId).Authorization,
+            }),
+            ...(needsStudentId && getAuthHeaders(needsStudentId)["X-Student-Id"] && {
+              "X-Student-Id": getAuthHeaders(needsStudentId)["X-Student-Id"],
             }),
           },
           body: formData,
@@ -279,6 +300,25 @@ export const studentProfiles = {
   },
   // Statistiques des profils
   getStats: () => studentApi.get("/api/students/profiles/stats"),
+};
+
+// Student Applications - Service Student (port 8084)
+export const studentApplications = {
+  create: (data: { campaignId: string; jobId: string; companyId: string; coverLetter?: string }) => 
+    studentApi.post("/api/students/me/applications", data),
+  createWithStudentId: (studentId: string, data: { campaignId: string; jobId: string; companyId: string; coverLetter?: string }) => 
+    studentApi.post(`/api/students/${studentId}/applications`, data),
+  getMyApplications: () => studentApi.get("/api/students/me/applications"),
+  getMyEnrichedApplications: () => studentApi.get("/api/students/me/applications/enriched"),
+  getByStudent: (studentId: string) => studentApi.get(`/api/students/${studentId}/applications`),
+  getByJob: (jobId: string) => studentApi.get(`/api/students/applications/job/${jobId}`),
+  getByCampaign: (campaignId: string) => studentApi.get(`/api/students/applications/campaign/${campaignId}`),
+  updateStatus: (applicationId: string, status: string) => 
+    studentApi.put(`/api/students/applications/${applicationId}/status?status=${status}`),
+  checkEligibility: (jobId: string) => 
+    studentApi.get(`/api/students/me/applications/eligibility/job/${jobId}`),
+  checkEligibilityForStudent: (studentId: string, jobId: string) => 
+    studentApi.get(`/api/students/${studentId}/applications/eligibility/job/${jobId}`),
 };
 
 // Export pour compatibilité avec le code existant

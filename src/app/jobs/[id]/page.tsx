@@ -2,12 +2,13 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Calendar, MapPin, Users, Building, Clock, Briefcase, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Users, Building, Clock, Briefcase, CheckCircle2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from '@/contexts/AuthContext';
-import { jobOpenings } from "@/lib/api";
+import { jobOpenings, studentApplications } from "@/lib/api";
+import { ApplicationEligibility } from '@/types/campaign';
 
 interface JobOpening {
   id: string;
@@ -33,6 +34,8 @@ export default function JobDetailsPage() {
   const [job, setJob] = useState<JobOpening | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [eligibility, setEligibility] = useState<ApplicationEligibility | null>(null);
+  const [checkingEligibility, setCheckingEligibility] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -51,6 +54,25 @@ export default function JobDetailsPage() {
 
     fetchJob();
   }, [id]);
+
+  useEffect(() => {
+    if (!id || !user || user.role !== 'student') return;
+    
+    const checkEligibility = async () => {
+      setCheckingEligibility(true);
+      try {
+        const eligibilityData = await studentApplications.checkEligibility(String(id));
+        setEligibility(eligibilityData);
+      } catch (error: any) {
+        console.error('Error checking eligibility:', error);
+        // Don't set error state for eligibility check failures
+      } finally {
+        setCheckingEligibility(false);
+      }
+    };
+
+    checkEligibility();
+  }, [id, user]);
 
   if (loading) {
     return (
@@ -85,6 +107,61 @@ export default function JobDetailsPage() {
   const tags = job.tags ? job.tags.split(',').filter(Boolean) : [];
 
   const canApply = user?.role === 'student';
+  const hasApplied = eligibility?.hasExistingApplication || false;
+  
+  const getApplicationStatusDisplay = () => {
+    if (!eligibility?.hasExistingApplication) return null;
+    
+    const status = eligibility.applicationStatus;
+    const appliedDate = eligibility.appliedAt ? new Date(eligibility.appliedAt).toLocaleDateString('fr-FR') : '';
+    
+    switch (status) {
+      case 'submitted':
+        return {
+          text: 'Candidature envoyée',
+          subtext: `Postulé le ${appliedDate}`,
+          color: 'bg-blue-100 text-blue-800',
+          icon: CheckCircle2
+        };
+      case 'selected_for_interview':
+        return {
+          text: 'Sélectionné pour entretien',
+          subtext: `Postulé le ${appliedDate}`,
+          color: 'bg-green-100 text-green-800',
+          icon: CheckCircle2
+        };
+      case 'not_selected_for_interview':
+        return {
+          text: 'Non retenu',
+          subtext: `Postulé le ${appliedDate}`,
+          color: 'bg-red-100 text-red-800',
+          icon: AlertCircle
+        };
+      case 'decision_accepted':
+        return {
+          text: 'Candidature acceptée',
+          subtext: `Postulé le ${appliedDate}`,
+          color: 'bg-green-100 text-green-800',
+          icon: CheckCircle2
+        };
+      case 'decision_rejected':
+        return {
+          text: 'Candidature refusée',
+          subtext: `Postulé le ${appliedDate}`,
+          color: 'bg-red-100 text-red-800',
+          icon: AlertCircle
+        };
+      default:
+        return {
+          text: 'Candidature envoyée',
+          subtext: `Postulé le ${appliedDate}`,
+          color: 'bg-blue-100 text-blue-800',
+          icon: CheckCircle2
+        };
+    }
+  };
+
+  const applicationStatus = getApplicationStatusDisplay();
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
@@ -129,12 +206,29 @@ export default function JobDetailsPage() {
                 </div>
               </div>
               
-              {canApply && (
+              {canApply && !hasApplied && !checkingEligibility && (
                 <Link href={`/jobs/${job.id}/apply`}>
                   <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
                     Candidater
                   </Button>
                 </Link>
+              )}
+              
+              {canApply && hasApplied && applicationStatus && (
+                <div className={`px-4 py-2 rounded-lg ${applicationStatus.color} flex items-center gap-2`}>
+                  <applicationStatus.icon className="w-5 h-5" />
+                  <div>
+                    <p className="font-medium">{applicationStatus.text}</p>
+                    <p className="text-sm opacity-75">{applicationStatus.subtext}</p>
+                  </div>
+                </div>
+              )}
+              
+              {canApply && checkingEligibility && (
+                <div className="px-4 py-2 rounded-lg bg-gray-100 text-gray-600 flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                  <span>Vérification...</span>
+                </div>
               )}
             </div>
 
@@ -215,7 +309,7 @@ export default function JobDetailsPage() {
           <div className="space-y-6">
             
             {/* Apply Card */}
-            {canApply && (
+            {canApply && !hasApplied && !checkingEligibility && (
               <div className="bg-white rounded-xl shadow-sm border p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Candidater</h3>
                 <p className="text-gray-600 mb-4 text-sm">
@@ -226,6 +320,34 @@ export default function JobDetailsPage() {
                     Candidater maintenant
                   </Button>
                 </Link>
+              </div>
+            )}
+            
+            {/* Application Status Card */}
+            {canApply && hasApplied && applicationStatus && (
+              <div className="bg-white rounded-xl shadow-sm border p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Votre candidature</h3>
+                <div className={`p-4 rounded-lg ${applicationStatus.color} flex items-start gap-3`}>
+                  <applicationStatus.icon className="w-5 h-5 mt-0.5" />
+                  <div>
+                    <p className="font-medium">{applicationStatus.text}</p>
+                    <p className="text-sm opacity-75 mt-1">{applicationStatus.subtext}</p>
+                  </div>
+                </div>
+                <p className="text-gray-600 mt-4 text-sm">
+                  Vous avez déjà postulé à cette offre. Une seule candidature par offre est autorisée.
+                </p>
+              </div>
+            )}
+            
+            {/* Loading Card */}
+            {canApply && checkingEligibility && (
+              <div className="bg-white rounded-xl shadow-sm border p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Candidater</h3>
+                <div className="flex items-center gap-2 text-gray-600">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                  <span>Vérification de votre éligibilité...</span>
+                </div>
               </div>
             )}
 

@@ -3,13 +3,16 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { jobOpenings, studentProfiles } from '@/lib/api';
+import { jobOpenings, studentProfiles, studentApplications } from '@/lib/api';
 import { ArrowLeft, Briefcase, User, CheckCircle, AlertCircle, Edit } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from "@/components/ui/badge";
+import { ApplicationEligibility } from '@/types/campaign';
 
 interface JobData {
   id: string;
+  campaignId: string;
+  companyId: string;
   title: string;
   description: string;
   contractType?: string;
@@ -17,17 +20,6 @@ interface JobData {
   location?: string;
   maxParticipants?: number;
   createdAt?: string;
-  company?: {
-    id: string;
-    name: string;
-    logo?: string;
-  };
-  campaign?: {
-    id: string;
-    name: string;
-    status: string;
-    deadline: string;
-  };
   requirements?: string[];
   benefits?: string[];
   tags?: string[];
@@ -59,6 +51,8 @@ export default function JobApplicationPage() {
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [eligibility, setEligibility] = useState<ApplicationEligibility | null>(null);
+  const [alreadyApplied, setAlreadyApplied] = useState(false);
 
   const jobId = params.id as string;
 
@@ -75,6 +69,21 @@ export default function JobApplicationPage() {
         // Fetch job details
         const jobData = await jobOpenings.getById(jobId);
         setJob(jobData);
+        
+        // Check application eligibility first
+        try {
+          const eligibilityData = await studentApplications.checkEligibility(jobId);
+          setEligibility(eligibilityData);
+          
+          if (eligibilityData.hasExistingApplication) {
+            setAlreadyApplied(true);
+            setLoading(false);
+            return; // Don't need to check profile if already applied
+          }
+        } catch (eligibilityError) {
+          console.error('Error checking eligibility:', eligibilityError);
+          // Continue with profile check even if eligibility check fails
+        }
         
         // Check if student has a profile
         try {
@@ -109,7 +118,7 @@ export default function JobApplicationPage() {
       return;
     }
 
-    if (!job?.company?.id || !job?.campaign?.id) {
+    if (!job?.campaignId) {
       setError('Informations de l\'offre incomplètes');
       return;
     }
@@ -118,24 +127,36 @@ export default function JobApplicationPage() {
       setApplying(true);
       setError(null);
       
-      // Apply to the job using the student's profile
-      await jobOpenings.apply(job.campaign.id, job.company.id, jobId, {
-        candidateInfo: {
-          studentId: user?.id,
-          profileData: profile
-        }
+      // Apply to the job using the student applications API
+      await studentApplications.createWithStudentId(user!.id, {
+        campaignId: job.campaignId,
+        jobId: jobId,
+        companyId: job.companyId || '', // Use empty string as fallback
+        coverLetter: '' // Could be added as a form field later
       });
       
       setSuccess(true);
     } catch (err: any) {
-      if (err.message.includes('already applied')) {
-        setError('Vous avez déjà candidaté à cette offre');
-      } else if (err.message.includes('deadline')) {
-        setError('La deadline pour candidater à cette offre est dépassée');
-      } else {
-        setError('Erreur lors de la candidature. Veuillez réessayer.');
-      }
       console.error('Error applying to job:', err);
+      
+      // Parse error message from API response
+      let errorMessage = 'Erreur lors de la candidature. Veuillez réessayer.';
+      
+      if (err.message) {
+        if (err.message.includes('déjà postulé') || err.message.includes('already applied')) {
+          errorMessage = 'Vous avez déjà postulé à cette offre d\'emploi. Une seule candidature par offre est autorisée.';
+        } else if (err.message.includes('Profil étudiant non trouvé') || err.message.includes('profile not found')) {
+          errorMessage = 'Veuillez compléter votre profil avant de candidater.';
+          router.push(`/students/profile?returnTo=/jobs/${jobId}/apply`);
+          return;
+        } else if (err.message.includes('deadline')) {
+          errorMessage = 'La deadline pour candidater à cette offre est dépassée.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setApplying(false);
     }
@@ -161,6 +182,78 @@ export default function JobApplicationPage() {
           >
             Retour
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (alreadyApplied && eligibility) {
+    const appliedDate = eligibility.appliedAt ? new Date(eligibility.appliedAt).toLocaleDateString('fr-FR') : '';
+    const getStatusDisplay = () => {
+      switch (eligibility.applicationStatus) {
+        case 'submitted':
+          return { text: 'Candidature envoyée', color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' };
+        case 'selected_for_interview':
+          return { text: 'Sélectionné pour entretien', color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-200' };
+        case 'not_selected_for_interview':
+          return { text: 'Non retenu pour entretien', color: 'text-red-600', bgColor: 'bg-red-50', borderColor: 'border-red-200' };
+        case 'decision_accepted':
+          return { text: 'Candidature acceptée', color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-200' };
+        case 'decision_rejected':
+          return { text: 'Candidature refusée', color: 'text-red-600', bgColor: 'bg-red-50', borderColor: 'border-red-200' };
+        default:
+          return { text: 'Candidature envoyée', color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' };
+      }
+    };
+    
+    const statusDisplay = getStatusDisplay();
+    
+    return (
+      <div className="min-h-screen bg-gray-50 pt-20">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-8">
+            <button
+              onClick={() => router.back()}
+              className="flex items-center text-gray-600 hover:text-gray-900 mb-4"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Retour
+            </button>
+          </div>
+          
+          <div className="max-w-2xl mx-auto">
+            <div className={`border rounded-lg p-6 ${statusDisplay.bgColor} ${statusDisplay.borderColor}`}>
+              <div className="text-center">
+                <AlertCircle className={`w-12 h-12 mx-auto mb-4 ${statusDisplay.color}`} />
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">Candidature déjà envoyée</h1>
+                <p className="text-gray-600 mb-4">
+                  Vous avez déjà postulé à cette offre d'emploi le {appliedDate}.
+                </p>
+                <div className={`inline-flex items-center px-4 py-2 rounded-lg ${statusDisplay.bgColor} ${statusDisplay.borderColor} border`}>
+                  <span className={`font-medium ${statusDisplay.color}`}>
+                    Statut: {statusDisplay.text}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500 mt-4">
+                  Une seule candidature par offre est autorisée. Vous pouvez consulter le statut de toutes vos candidatures dans votre espace personnel.
+                </p>
+                <div className="flex gap-4 justify-center mt-6">
+                  <Link
+                    href="/students/applications"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Voir mes candidatures
+                  </Link>
+                  <Link
+                    href={`/jobs/${jobId}`}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Voir l'offre
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -222,7 +315,7 @@ export default function JobApplicationPage() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-lg font-medium text-gray-900">{job.title}</h3>
-                  <p className="text-gray-600">{job.company?.name}</p>
+                  <p className="text-gray-600">Entreprise</p>
                 </div>
                 
                 <div>
@@ -230,7 +323,7 @@ export default function JobApplicationPage() {
                   <p className="text-gray-700">{job.description}</p>
                 </div>
                 
-                {job.requirements && job.requirements.length > 0 && (
+                {job.requirements && Array.isArray(job.requirements) && job.requirements.length > 0 && (
                   <div>
                     <h4 className="font-medium text-gray-900 mb-2">Exigences</h4>
                     <ul className="text-gray-700 space-y-1">
@@ -244,7 +337,7 @@ export default function JobApplicationPage() {
                   </div>
                 )}
                 
-                {job.benefits && job.benefits.length > 0 && (
+                {job.benefits && Array.isArray(job.benefits) && job.benefits.length > 0 && (
                   <div>
                     <h4 className="font-medium text-gray-900 mb-2">Avantages</h4>
                     <ul className="text-gray-700 space-y-1">
@@ -277,7 +370,7 @@ export default function JobApplicationPage() {
                   )}
                 </div>
 
-                {job.tags && job.tags.length > 0 && (
+                {job.tags && Array.isArray(job.tags) && job.tags.length > 0 && (
                   <div>
                     <h4 className="font-medium text-gray-900 mb-2">Domaines</h4>
                     <div className="flex flex-wrap gap-2">
@@ -339,7 +432,7 @@ export default function JobApplicationPage() {
                       <div className="text-sm text-gray-600">
                         Promotion {profile.graduationYear}
                       </div>
-                      {profile.skills && profile.skills.length > 0 && (
+                      {profile.skills && Array.isArray(profile.skills) && profile.skills.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">
                           {profile.skills.slice(0, 5).map((skill: string, index: number) => (
                             <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
