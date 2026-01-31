@@ -11,10 +11,12 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [mounted, setMounted] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
+    setMounted(true);
     const stored = localStorage.getItem('theme');
     const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     const initial = (stored === 'dark' || stored === 'light')
@@ -33,6 +35,10 @@ export default function Header() {
     });
   };
 
+  const effectiveUser = mounted ? user : null;
+  const effectiveIsAuthenticated = mounted ? isAuthenticated : false;
+  const effectiveTheme = mounted ? theme : 'light';
+
   const getNavItems = () => {
     const baseItems = [
       { 
@@ -43,7 +49,7 @@ export default function Header() {
       }
     ];
 
-    if (user?.role === 'student') {
+    if (effectiveUser?.role === 'student') {
       baseItems.push(
         {
           name: "Dashboard",
@@ -66,7 +72,7 @@ export default function Header() {
       );
     }
 
-    if (user?.role === 'school') {
+    if (effectiveUser?.role === 'school') {
       baseItems.push({
         name: "Mes campagnes",
         href: "/campaigns/school/me",
@@ -75,7 +81,7 @@ export default function Header() {
       });
     }
 
-    if (user?.role === 'company') {
+    if (effectiveUser?.role === 'company') {
       baseItems.push(
         {
           name: "Mes invitations",
@@ -92,7 +98,7 @@ export default function Header() {
       );
     }
 
-    if (user?.role === 'platform_admin') {
+    if (effectiveUser?.role === 'platform_admin') {
       baseItems.push({
         name: "Admin",
         href: "/admin",
@@ -140,18 +146,18 @@ export default function Header() {
                   type="button"
                   onClick={toggleTheme}
                   className="p-2 rounded-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                  aria-label={theme === 'dark' ? 'Activer le mode clair' : 'Activer le mode sombre'}
-                  title={theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
+                  aria-label={effectiveTheme === 'dark' ? 'Activer le mode clair' : 'Activer le mode sombre'}
+                  title={effectiveTheme === 'dark' ? 'Mode clair' : 'Mode sombre'}
                 >
-                  {theme === 'dark' ? (
+                  {effectiveTheme === 'dark' ? (
                     <Sun className="w-4 h-4" />
                   ) : (
                     <Moon className="w-4 h-4" />
                   )}
                 </button>
-                {isAuthenticated ? (
+                {effectiveIsAuthenticated ? (
                   <>
-                    <span className="text-sm text-gray-700 dark:text-gray-200 font-medium">{user?.name}</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-200 font-medium">{effectiveUser?.name}</span>
                     <Button
                       onClick={() => {
                         logout();
@@ -216,12 +222,12 @@ export default function Header() {
                 }}
                 className="flex items-center space-x-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-300 font-medium transition-colors duration-200"
               >
-                {theme === 'dark' ? (
+                {effectiveTheme === 'dark' ? (
                   <Sun className="w-4 h-4" />
                 ) : (
                   <Moon className="w-4 h-4" />
                 )}
-                <span>{theme === 'dark' ? 'Mode clair' : 'Mode sombre'}</span>
+                <span>{effectiveTheme === 'dark' ? 'Mode clair' : 'Mode sombre'}</span>
               </button>
               <Link
                 href="/login"

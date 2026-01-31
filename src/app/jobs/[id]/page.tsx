@@ -1,13 +1,13 @@
 "use client"
 
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Calendar, MapPin, Users, Building, Clock, Briefcase, CheckCircle2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from '@/contexts/AuthContext';
-import { jobOpenings, studentApplications } from "@/lib/api";
+import { aiMatching, campaigns, jobOpenings, studentApplications, studentProfiles } from "@/lib/api";
 import { ApplicationEligibility } from '@/types/campaign';
 
 interface JobOpening {
@@ -27,6 +27,30 @@ interface JobOpening {
   updatedAt?: string;
 }
 
+interface CampaignResponse {
+  id: string;
+  status?: string;
+  deadline?: string;
+  startDate?: string;
+}
+
+interface AIMatchResult {
+  id: string;
+  jobId: string;
+  campaignId: string;
+  studentId: string;
+  matchScore: number;
+  reasoning: string;
+}
+
+interface StudentProfileSummary {
+  studentId: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  skills?: string[];
+}
+
 export default function JobDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -36,6 +60,11 @@ export default function JobDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [eligibility, setEligibility] = useState<ApplicationEligibility | null>(null);
   const [checkingEligibility, setCheckingEligibility] = useState(false);
+  const [campaignData, setCampaignData] = useState<CampaignResponse | null>(null);
+  const [matchingLoading, setMatchingLoading] = useState(false);
+  const [matchingError, setMatchingError] = useState<string | null>(null);
+  const [matchingResults, setMatchingResults] = useState<AIMatchResult[]>([]);
+  const [studentsById, setStudentsById] = useState<Record<string, StudentProfileSummary>>({});
 
   useEffect(() => {
     if (!id) return;
@@ -56,6 +85,87 @@ export default function JobDetailsPage() {
   }, [id]);
 
   useEffect(() => {
+    if (!job?.campaignId) {
+      setCampaignData(null);
+      return;
+    }
+
+    let isMounted = true;
+    campaigns.getById(job.campaignId)
+      .then((data: CampaignResponse) => {
+        if (!isMounted) return;
+        setCampaignData(data || null);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setCampaignData(null);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [job?.campaignId]);
+
+  const isCampaignLocked = useMemo(() => {
+    if (!campaignData) return false;
+    const status = (campaignData.status || '').toUpperCase();
+    if (status === 'LOCKED') return true;
+    if (campaignData.deadline) {
+      const deadline = new Date(campaignData.deadline);
+      if (!Number.isNaN(deadline.getTime())) {
+        return deadline.getTime() < Date.now();
+      }
+    }
+    return false;
+  }, [campaignData]);
+
+  useEffect(() => {
+    if (!job?.id || !user || user.role !== 'company' || !isCampaignLocked) {
+      return;
+    }
+
+    let isMounted = true;
+    setMatchingLoading(true);
+    setMatchingError(null);
+
+    aiMatching.getResultsByJob(job.id)
+      .then((results: AIMatchResult[]) => {
+        if (!isMounted) return;
+        const safeResults = Array.isArray(results) ? results : [];
+        setMatchingResults(safeResults);
+
+        const studentIds = Array.from(new Set(safeResults.map((r) => r.studentId))).filter(Boolean);
+        if (studentIds.length === 0) {
+          setStudentsById({});
+          return;
+        }
+
+        return studentProfiles.getByIds(studentIds).then((profiles: StudentProfileSummary[]) => {
+          if (!isMounted) return;
+          const map: Record<string, StudentProfileSummary> = {};
+          for (const profile of profiles || []) {
+            if (profile?.studentId) {
+              map[profile.studentId] = profile;
+            }
+          }
+          setStudentsById(map);
+        });
+      })
+      .catch((err: Error) => {
+        if (!isMounted) return;
+        setMatchingError(err?.message || "Erreur lors du chargement du matching.");
+      })
+      .finally(() => {
+        if (!isMounted) return;
+        setMatchingLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [job?.id, user, isCampaignLocked]);
+
+  useEffect(() => {
     if (!id || !user || user.role !== 'student') return;
     
     const checkEligibility = async () => {
@@ -73,6 +183,39 @@ export default function JobDetailsPage() {
 
     checkEligibility();
   }, [id, user]);
+
+  const sortedMatches = useMemo(() => {
+    return [...matchingResults].sort((a, b) => b.matchScore - a.matchScore);
+  }, [matchingResults]);
+
+  const requirements = useMemo(() => {
+    return (job?.requirements || '').split('\n').map((item) => item.trim()).filter(Boolean);
+  }, [job?.requirements]);
+
+  const benefits = useMemo(() => {
+    return (job?.benefits || '').split('\n').map((item) => item.trim()).filter(Boolean);
+  }, [job?.benefits]);
+
+  const tags = useMemo(() => {
+    return (job?.tags || '').split(',').map((item) => item.trim()).filter(Boolean);
+  }, [job?.tags]);
+
+  const canApply = user?.role === 'student';
+  const hasApplied = eligibility?.hasExistingApplication || false;
+
+  const getStudentName = (profile?: StudentProfileSummary) => {
+    const first = profile?.firstName?.trim() || "";
+    const last = profile?.lastName?.trim() || "";
+    const full = `${first} ${last}`.trim();
+    return full || profile?.email || "Étudiant";
+  };
+
+  const getInterviewMailto = (email?: string, studentName?: string) => {
+    if (!email) return "#";
+    const subject = `Entretien StepIn - ${job?.title || "Offre"}`;
+    const body = `Bonjour ${studentName || "},"}\n\nNous souhaitons programmer une entrevue suite à votre candidature.\n\nBien cordialement,`;
+    return `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
 
   if (loading) {
     return (
@@ -101,13 +244,6 @@ export default function JobDetailsPage() {
       </div>
     );
   }
-
-  const requirements = job.requirements ? job.requirements.split('\n').filter(Boolean) : [];
-  const benefits = job.benefits ? job.benefits.split('\n').filter(Boolean) : [];
-  const tags = job.tags ? job.tags.split(',').filter(Boolean) : [];
-
-  const canApply = user?.role === 'student';
-  const hasApplied = eligibility?.hasExistingApplication || false;
   
   const getApplicationStatusDisplay = () => {
     if (!eligibility?.hasExistingApplication) return null;
@@ -272,6 +408,71 @@ export default function JobDetailsPage() {
                 <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{job.description}</p>
               </div>
             </div>
+
+            {/* Best Candidates (matching) */}
+            {user?.role === 'company' && job.campaignId && isCampaignLocked && (
+              <div className="bg-white rounded-xl shadow-sm border p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900">Meilleurs candidats</h2>
+                  <Badge variant="outline" className="text-xs">
+                    {sortedMatches.length} candidat{sortedMatches.length > 1 ? 's' : ''}
+                  </Badge>
+                </div>
+
+                {matchingLoading && (
+                  <p className="text-gray-600 text-sm">Chargement des résultats de matching...</p>
+                )}
+
+                {!matchingLoading && matchingError && (
+                  <p className="text-red-600 text-sm">{matchingError}</p>
+                )}
+
+                {!matchingLoading && !matchingError && sortedMatches.length === 0 && (
+                  <p className="text-gray-600 text-sm">
+                    Le matching n'a pas encore été effectué pour cette offre.
+                  </p>
+                )}
+
+                {!matchingLoading && !matchingError && sortedMatches.length > 0 && (
+                  <div className="space-y-3">
+                    {sortedMatches.map((result, index) => {
+                      const profile = studentsById[result.studentId];
+                      const name = getStudentName(profile);
+                      const rowKey = result.id || `${result.studentId}-${result.jobId}`;
+                      const mailto = getInterviewMailto(profile?.email, name);
+
+                      return (
+                        <div key={rowKey} className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border border-gray-200 rounded-lg p-4">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">
+                              #{index + 1} {name}
+                            </p>
+                            {profile?.email && (
+                              <p className="text-xs text-gray-500">{profile.email}</p>
+                            )}
+                            {result.reasoning && (
+                              <p className="text-xs text-gray-500 mt-1">{result.reasoning}</p>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <Link href={`/students/${result.studentId}`}>
+                              <Button variant="outline" size="sm">
+                                Détails
+                              </Button>
+                            </Link>
+                            <a href={mailto}>
+                              <Button size="sm" disabled={!profile?.email}>
+                                Programmer une entrevue
+                              </Button>
+                            </a>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Requirements */}
             {requirements.length > 0 && (

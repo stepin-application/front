@@ -72,7 +72,7 @@ async function retryRequest<T>(
 }
 
 // API générique pour un service spécifique
-function createApiClient(service: "campaign" | "job" | "auth" | "student") {
+function createApiClient(service: "campaign" | "job" | "auth" | "student" | "ai") {
   const baseUrl = getServiceUrl(service);
   const needsStudentId = service === "student";
 
@@ -140,6 +140,7 @@ export const campaignApi = createApiClient("campaign");
 export const jobApi = createApiClient("job");
 export const authApi = createApiClient("auth");
 export const studentApi = createApiClient("student");
+export const aiApi = createApiClient("ai");
 
 // Campagnes - Service Campaign (port 8082)
 export const campaigns = {
@@ -319,6 +320,18 @@ export const studentApplications = {
     studentApi.get(`/api/students/me/applications/eligibility/job/${jobId}`),
   checkEligibilityForStudent: (studentId: string, jobId: string) => 
     studentApi.get(`/api/students/${studentId}/applications/eligibility/job/${jobId}`),
+};
+
+// AI Matching - Service AI (port 8085)
+export const aiMatching = {
+  getResultsByCampaign: (campaignId: string) =>
+    aiApi.get(`/api/matching/results/${campaignId}`),
+  getResultsByJob: (jobId: string) =>
+    aiApi.get(`/api/matching/job/${jobId}/matches`),
+  getStatusByCampaign: (campaignId: string) =>
+    aiApi.get(`/api/matching/status/${campaignId}`),
+  triggerByCampaign: (campaignId: string) =>
+    aiApi.post(`/api/matching/trigger/${campaignId}`),
 };
 
 // Export pour compatibilité avec le code existant

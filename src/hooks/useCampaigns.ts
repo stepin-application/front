@@ -48,6 +48,28 @@ export function useCampaigns(): UseCampaignsReturn {
 
   const mapCampaign = (campaign: any, schoolsMap: Record<string, string>): Campaign => {
     const schoolId = campaign?.schoolId || '';
+    const deriveStatus = () => {
+      const rawStatus = (campaign?.status || '').toString().toUpperCase();
+      if (rawStatus === 'ACTIVE' || rawStatus === 'UPCOMING' || rawStatus === 'CLOSED') {
+        return rawStatus.toLowerCase();
+      }
+
+      const deadline = campaign?.deadline ? new Date(campaign.deadline) : null;
+      const startDate = campaign?.startDate ? new Date(campaign.startDate) : null;
+      const now = Date.now();
+
+      if (rawStatus === 'LOCKED') {
+        return 'closed';
+      }
+      if (deadline && !Number.isNaN(deadline.getTime()) && deadline.getTime() < now) {
+        return 'closed';
+      }
+      if (startDate && !Number.isNaN(startDate.getTime()) && startDate.getTime() > now) {
+        return 'upcoming';
+      }
+      return 'active';
+    };
+
     return {
       id: campaign?.id,
       title: campaign?.name ?? campaign?.title ?? 'Campagne',
@@ -57,7 +79,7 @@ export function useCampaigns(): UseCampaignsReturn {
       startDate: campaign?.startDate ?? campaign?.createdAt ?? '',
       endDate: campaign?.deadline ?? '',
       location: campaign?.location ?? '—',
-      status: campaign?.status ?? 'OPEN',
+      status: deriveStatus(),
       maxParticipants: campaign?.maxParticipants ?? undefined,
       participants: campaign?.participants ?? 0,
       type: 'school',
