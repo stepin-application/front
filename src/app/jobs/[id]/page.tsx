@@ -71,6 +71,11 @@ export default function JobDetailsPage() {
   const [selectionMessage, setSelectionMessage] = useState<string | null>(null);
   const [selectionSending, setSelectionSending] = useState(false);
   const [updatingStudentIds, setUpdatingStudentIds] = useState<string[]>([]);
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    studentId: string | null;
+    status: "selected_for_interview" | "not_selected_for_interview" | "submitted" | null;
+  }>({ open: false, studentId: null, status: null });
 
   useEffect(() => {
     if (!id) return;
@@ -276,7 +281,11 @@ export default function JobDetailsPage() {
 
   const selectedCount = selectedStudentIds.length;
 
-  const updateApplicationStatus = async (studentId: string, status: "selected_for_interview" | "submitted") => {
+  const requestStatusChange = (studentId: string, status: "selected_for_interview" | "not_selected_for_interview") => {
+    setConfirmState({ open: true, studentId, status });
+  };
+
+  const updateApplicationStatus = async (studentId: string, status: "selected_for_interview" | "not_selected_for_interview" | "submitted") => {
     const applicationId = applicationsByStudentId[studentId]?.id;
     if (!applicationId) {
       setSelectionError("Aucune candidature associee a cet etudiant.");
@@ -455,6 +464,7 @@ export default function JobDetailsPage() {
   const applicationStatus = getApplicationStatusDisplay();
 
   return (
+    <>
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-4xl mx-auto px-4">
         
@@ -601,6 +611,7 @@ export default function JobDetailsPage() {
                       const name = getStudentName(profile);
                       const application = applicationsByStudentId[result.studentId];
                       const alreadySelected = application?.status === "selected_for_interview";
+                      const notSelected = application?.status === "not_selected_for_interview";
                       const hasApplication = Boolean(application?.id);
                       const isSelected = selectedStudentIds.includes(result.studentId);
                       const rowKey = result.id || `${result.studentId}-${result.jobId}`;
@@ -627,7 +638,12 @@ export default function JobDetailsPage() {
                             )}
                             {alreadySelected && (
                               <p className="text-xs text-emerald-600 mt-1">
-                                Sélectionné pour entretien.
+                                Selectionnee.
+                              </p>
+                            )}
+                            {notSelected && (
+                              <p className="text-xs text-red-600 mt-1">
+                                Non retenue.
                               </p>
                             )}
                             {result.reasoning && (
@@ -641,32 +657,36 @@ export default function JobDetailsPage() {
                               </Button>
                             </Link>
                             {alreadySelected || isSelected ? (
+                              <a href={mailto}>
+                                <Button size="sm" className="w-full sm:w-auto" disabled={!profile?.email}>
+                                  Programmer une entrevue
+                                </Button>
+                              </a>
+                            ) : notSelected ? (
+                              <Button variant="outline" size="sm" className="w-full sm:w-auto" disabled>
+                                Non retenu
+                              </Button>
+                            ) : (
                               <>
-                                <a href={mailto}>
-                                  <Button size="sm" className="w-full sm:w-auto" disabled={!profile?.email}>
-                                    Programmer une entrevue
-                                  </Button>
-                                </a>
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => updateApplicationStatus(result.studentId, "submitted")}
+                                  onClick={() => requestStatusChange(result.studentId, "selected_for_interview")}
                                   disabled={!hasApplication || updatingStudentIds.includes(result.studentId)}
                                   className="w-full sm:w-auto"
                                 >
-                                  Annuler la selection
+                                  Selectionner pour entretien
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => requestStatusChange(result.studentId, "not_selected_for_interview")}
+                                  disabled={!hasApplication || updatingStudentIds.includes(result.studentId)}
+                                  className="w-full sm:w-auto"
+                                >
+                                  Non retenu
                                 </Button>
                               </>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => updateApplicationStatus(result.studentId, "selected_for_interview")}
-                                disabled={!hasApplication || updatingStudentIds.includes(result.studentId)}
-                                className="w-full sm:w-auto"
-                              >
-                                Selectionner pour entretien
-                              </Button>
                             )}
                           </div>
                         </div>
@@ -819,5 +839,37 @@ export default function JobDetailsPage() {
         </div>
       </div>
     </div>
+      {confirmState.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmState({ open: false, studentId: null, status: null })}></div>
+          <div className="relative bg-white rounded-xl shadow-xl border p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirmer l'action</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              {confirmState.status === "selected_for_interview"
+                ? "Confirmer la sélection de ce candidat ?"
+                : "Confirmer le refus de ce candidat ?"}
+            </p>
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setConfirmState({ open: false, studentId: null, status: null })}
+              >
+                Annuler
+              </Button>
+              <Button
+                onClick={() => {
+                  if (confirmState.studentId && confirmState.status) {
+                    updateApplicationStatus(confirmState.studentId, confirmState.status);
+                  }
+                  setConfirmState({ open: false, studentId: null, status: null });
+                }}
+              >
+                Confirmer
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

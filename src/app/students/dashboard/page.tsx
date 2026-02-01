@@ -27,7 +27,8 @@ import {
 interface DashboardStats {
   totalApplications: number
   pendingApplications: number
-  acceptedApplications: number
+  selectedApplications: number
+  notSelectedApplications: number
   newCampaigns: number
 }
 
@@ -40,7 +41,8 @@ export default function StudentDashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     totalApplications: 0,
     pendingApplications: 0,
-    acceptedApplications: 0,
+    selectedApplications: 0,
+    notSelectedApplications: 0,
     newCampaigns: 0
   })
   const [recommendedCampaigns, setRecommendedCampaigns] = useState<Campaign[]>([])
@@ -115,7 +117,8 @@ export default function StudentDashboard() {
         setStats({
           totalApplications: 0,
           pendingApplications: 0,
-          acceptedApplications: 0,
+          selectedApplications: 0,
+          notSelectedApplications: 0,
           newCampaigns: mappedCampaigns.length
         })
         setRecommendedCampaigns(mappedCampaigns.slice(0, 4))
@@ -129,12 +132,14 @@ export default function StudentDashboard() {
           setStats(prevStats => ({
             ...prevStats,
             totalApplications: applicationsData.length,
-            pendingApplications: applicationsData.filter(app => 
-              app.applicationStatus === 'submitted' || 
+            pendingApplications: applicationsData.filter(app =>
+              app.applicationStatus === 'submitted'
+            ).length,
+            selectedApplications: applicationsData.filter(app =>
               app.applicationStatus === 'selected_for_interview'
             ).length,
-            acceptedApplications: applicationsData.filter(app => 
-              app.applicationStatus === 'decision_accepted'
+            notSelectedApplications: applicationsData.filter(app =>
+              app.applicationStatus === 'not_selected_for_interview'
             ).length,
           }))
         } catch (error) {
@@ -171,15 +176,15 @@ export default function StudentDashboard() {
   const getApplicationStatusText = (status?: string) => {
     switch (status) {
       case 'submitted':
-        return 'Envoyée'
+        return 'En attente'
       case 'selected_for_interview':
-        return 'Sélectionnée pour entretien'
+        return 'Selectionnee'
       case 'not_selected_for_interview':
         return 'Non retenue'
       case 'decision_accepted':
-        return 'Acceptée'
+        return 'Acceptee'
       case 'decision_rejected':
-        return 'Refusée'
+        return 'Refusee'
       default:
         return status || 'Statut inconnu'
     }
@@ -262,7 +267,7 @@ export default function StudentDashboard() {
         )}
 
         {/* Statistiques */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           <Link href="/students/applications" className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
             <div className="flex items-center">
               <div className="p-2 bg-blue-100 rounded-lg">
@@ -275,7 +280,7 @@ export default function StudentDashboard() {
             </div>
           </Link>
 
-          <Link href="/students/applications?status=pending" className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
+          <Link href="/students/applications?status=submitted" className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
             <div className="flex items-center">
               <div className="p-2 bg-yellow-100 rounded-lg">
                 <Clock className="w-6 h-6 text-yellow-600" />
@@ -287,14 +292,26 @@ export default function StudentDashboard() {
             </div>
           </Link>
 
-          <Link href="/students/applications?status=accepted" className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
+          <Link href="/students/applications?status=selected_for_interview" className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
             <div className="flex items-center">
               <div className="p-2 bg-green-100 rounded-lg">
                 <CheckCircle className="w-6 h-6 text-green-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Acceptées</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.acceptedApplications}</p>
+                <p className="text-sm font-medium text-gray-600">Selectionnees</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.selectedApplications}</p>
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/students/applications?status=not_selected_for_interview" className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
+            <div className="flex items-center">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <XCircle className="w-6 h-6 text-red-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Non retenues</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.notSelectedApplications}</p>
               </div>
             </div>
           </Link>
@@ -414,7 +431,7 @@ export default function StudentDashboard() {
                     {recentApplications.map((application: any) => (
                       <Link
                         key={application.id}
-                        href="/students/applications"
+                        href={`/students/applications/${application.id}`}
                         className="flex items-center justify-between py-2 hover:bg-gray-50 rounded-lg px-2 transition-colors cursor-pointer"
                       >
                         <div className="flex items-center">

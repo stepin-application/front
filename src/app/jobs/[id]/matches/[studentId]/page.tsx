@@ -95,6 +95,7 @@ export default function MatchDetailsPage() {
   const [application, setApplication] = useState<{ id: string; status?: string } | null>(null);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [confirmState, setConfirmState] = useState<{ open: boolean; status: "selected_for_interview" | "not_selected_for_interview" | "submitted" | null }>({ open: false, status: null });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -169,7 +170,11 @@ export default function MatchDetailsPage() {
   const benefits = useMemo(() => parseTextList(job?.benefits), [job?.benefits]);
   const tags = useMemo(() => parseTextList(job?.tags), [job?.tags]);
 
-  const updateApplicationStatus = async (status: "selected_for_interview" | "submitted") => {
+  const requestStatusChange = (status: "selected_for_interview" | "not_selected_for_interview") => {
+    setConfirmState({ open: true, status });
+  };
+
+  const updateApplicationStatus = async (status: "selected_for_interview" | "not_selected_for_interview" | "submitted") => {
     if (!application?.id) {
       setSelectionError("Aucune candidature associee a cet etudiant.");
       return;
@@ -214,6 +219,7 @@ export default function MatchDetailsPage() {
   }
 
   return (
+    <>
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-5xl mx-auto px-4">
         <Button variant="ghost" onClick={() => router.back()} className="mb-6">
@@ -423,23 +429,29 @@ export default function MatchDetailsPage() {
                       Programmer une entrevue
                     </Button>
                   </a>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => updateApplicationStatus("submitted")}
-                    disabled={updating}
-                  >
-                    Annuler la selection
+                </div>
+              ) : application?.status === "not_selected_for_interview" ? (
+                <div className="space-y-2">
+                  <Button variant="outline" className="w-full" disabled>
+                    Non retenu
                   </Button>
                 </div>
               ) : (
                 <div className="space-y-2">
                   <Button
                     className="w-full"
-                    onClick={() => updateApplicationStatus("selected_for_interview")}
+                    onClick={() => requestStatusChange("selected_for_interview")}
                     disabled={!application?.id || updating}
                   >
                     Selectionner pour entretien
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => requestStatusChange("not_selected_for_interview")}
+                    disabled={!application?.id || updating}
+                  >
+                    Non retenu
                   </Button>
                 </div>
               )}
@@ -448,5 +460,34 @@ export default function MatchDetailsPage() {
         </div>
       </div>
     </div>
+      {confirmState.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmState({ open: false, status: null })}></div>
+          <div className="relative bg-white rounded-xl shadow-xl border p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirmer l'action</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              {confirmState.status === "selected_for_interview"
+                ? "Confirmer la sélection de ce candidat ?"
+                : "Confirmer le refus de ce candidat ?"}
+            </p>
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="outline" onClick={() => setConfirmState({ open: false, status: null })}>
+                Annuler
+              </Button>
+              <Button
+                onClick={() => {
+                  if (confirmState.status) {
+                    updateApplicationStatus(confirmState.status);
+                  }
+                  setConfirmState({ open: false, status: null });
+                }}
+              >
+                Confirmer
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

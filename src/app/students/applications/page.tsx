@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import Link from 'next/link'
 import { ApplicationStatus } from '@/types/campaign'
 import { studentApplications } from '@/lib/api'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -45,17 +46,15 @@ export default function StudentApplications() {
   const [applications, setApplications] = useState<ApplicationWithDetails[]>([])
   const [filteredApplications, setFilteredApplications] = useState<ApplicationWithDetails[]>([])
   const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<ApplicationStatus | 'all' | 'pending'>('all')
+  const [statusFilter, setStatusFilter] = useState<ApplicationStatus | 'all'>('all')
   const [sortBy, setSortBy] = useState<'date' | 'status' | 'company'>('date')
 
   // Handle URL parameters for initial filtering
   useEffect(() => {
     const statusParam = searchParams.get('status')
     if (statusParam === 'pending') {
-      setStatusFilter('submitted') // Default to submitted for pending
-    } else if (statusParam === 'accepted') {
-      setStatusFilter('decision_accepted')
-    } else if (statusParam && ['submitted', 'selected_for_interview', 'not_selected_for_interview', 'decision_accepted', 'decision_rejected'].includes(statusParam)) {
+      setStatusFilter('submitted')
+    } else if (statusParam && ['submitted', 'selected_for_interview', 'not_selected_for_interview'].includes(statusParam)) {
       setStatusFilter(statusParam as ApplicationStatus)
     }
   }, [searchParams])
@@ -102,15 +101,7 @@ export default function StudentApplications() {
 
     // Filtrage par statut
     if (statusFilter !== 'all') {
-      if (statusFilter === 'pending') {
-        // Special case for pending: includes submitted and selected_for_interview
-        filtered = filtered.filter(app => 
-          app.applicationStatus === 'submitted' || 
-          app.applicationStatus === 'selected_for_interview'
-        )
-      } else {
-        filtered = filtered.filter(app => app.applicationStatus === statusFilter)
-      }
+      filtered = filtered.filter(app => app.applicationStatus === statusFilter)
     }
 
     // Tri
@@ -150,9 +141,9 @@ export default function StudentApplications() {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'submitted':
-        return 'Envoyée'
+        return 'En attente'
       case 'selected_for_interview':
-        return 'Sélectionnée pour entretien'
+        return 'Sélectionnée'
       case 'not_selected_for_interview':
         return 'Non retenue'
       case 'decision_accepted':
@@ -184,9 +175,9 @@ export default function StudentApplications() {
   const getProgressPercentage = (status: string) => {
     switch (status) {
       case 'submitted':
-        return 33 // Envoyée
+        return 50 // En attente
       case 'selected_for_interview':
-        return 66 // Sélectionnée
+        return 100 // Sélectionnée
       case 'not_selected_for_interview':
       case 'decision_accepted':
       case 'decision_rejected':
@@ -238,16 +229,13 @@ export default function StudentApplications() {
             <div className="lg:w-48">
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as ApplicationStatus | 'all' | 'pending')}
+                onChange={(e) => setStatusFilter(e.target.value as ApplicationStatus | 'all')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">Tous les statuts</option>
-                <option value="pending">En attente</option>
-                <option value="submitted">Envoyées</option>
-                <option value="selected_for_interview">Sélectionnées pour entretien</option>
+                <option value="submitted">En attente</option>
+                <option value="selected_for_interview">Sélectionnées</option>
                 <option value="not_selected_for_interview">Non retenues</option>
-                <option value="decision_accepted">Acceptées</option>
-                <option value="decision_rejected">Refusées</option>
               </select>
             </div>
 
@@ -307,6 +295,9 @@ export default function StudentApplications() {
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
+                      <Link href={`/students/applications/${application.id}`} className="text-sm font-medium text-blue-600 hover:text-blue-700">
+                        Details
+                      </Link>
                       <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(application.applicationStatus)}`}>
                         {getStatusIcon(application.applicationStatus)}
                         <span className="ml-2">{getStatusText(application.applicationStatus)}</span>
@@ -334,13 +325,9 @@ export default function StudentApplications() {
                   {/* Timeline des étapes */}
                   <div className="mb-4">
                     <div className="flex items-center justify-between text-xs text-gray-500">
-                      <div className={`flex flex-col items-center ${getProgressPercentage(application.applicationStatus) >= 33 ? 'text-blue-600' : ''}`}>
-                        <div className={`w-3 h-3 rounded-full ${getProgressPercentage(application.applicationStatus) >= 33 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
-                        <span className="mt-1">Envoyée</span>
-                      </div>
-                      <div className={`flex flex-col items-center ${getProgressPercentage(application.applicationStatus) >= 66 ? 'text-orange-600' : ''}`}>
-                        <div className={`w-3 h-3 rounded-full ${getProgressPercentage(application.applicationStatus) >= 66 ? 'bg-orange-500' : 'bg-gray-300'}`}></div>
-                        <span className="mt-1">Sélectionnée</span>
+                      <div className={`flex flex-col items-center ${getProgressPercentage(application.applicationStatus) >= 50 ? 'text-blue-600' : ''}`}>
+                        <div className={`w-3 h-3 rounded-full ${getProgressPercentage(application.applicationStatus) >= 50 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                        <span className="mt-1">En attente</span>
                       </div>
                       <div className={`flex flex-col items-center ${
                         application.applicationStatus === 'decision_accepted' ? 'text-green-600' : 
@@ -350,7 +337,11 @@ export default function StudentApplications() {
                           application.applicationStatus === 'decision_accepted' ? 'bg-green-500' : 
                           application.applicationStatus === 'decision_rejected' || application.applicationStatus === 'not_selected_for_interview' ? 'bg-red-500' : 'bg-gray-300'
                         }`}></div>
-                        <span className="mt-1">Décision</span>
+                        <span className="mt-1">
+                          {application.applicationStatus === 'decision_rejected' || application.applicationStatus === 'not_selected_for_interview'
+                            ? 'Non retenue'
+                            : 'Sélectionnée'}
+                        </span>
                       </div>
                     </div>
                   </div>
