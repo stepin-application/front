@@ -65,6 +65,12 @@ export default function JobDetailsPage() {
   const [matchingError, setMatchingError] = useState<string | null>(null);
   const [matchingResults, setMatchingResults] = useState<AIMatchResult[]>([]);
   const [studentsById, setStudentsById] = useState<Record<string, StudentProfileSummary>>({});
+  const [applicationsByStudentId, setApplicationsByStudentId] = useState<Record<string, { id: string; status?: string }>>({});
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
+  const [selectionMessage, setSelectionMessage] = useState<string | null>(null);
+  const [selectionSending, setSelectionSending] = useState(false);
+  const [updatingStudentIds, setUpdatingStudentIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -127,41 +133,90 @@ export default function JobDetailsPage() {
     let isMounted = true;
     setMatchingLoading(true);
     setMatchingError(null);
+    setSelectionError(null);
+    setSelectionMessage(null);
 
-    aiMatching.getResultsByJob(job.id)
-      .then((results: AIMatchResult[]) => {
+    const loadMatching = async () => {
+      try {
+        const results = await aiMatching.getResultsByJob(job.id);
         if (!isMounted) return;
         const safeResults = Array.isArray(results) ? results : [];
         setMatchingResults(safeResults);
+        setSelectedStudentIds([]);
 
         const studentIds = Array.from(new Set(safeResults.map((r) => r.studentId))).filter(Boolean);
-        if (studentIds.length === 0) {
-          setStudentsById({});
-          return;
-        }
+        const profilePromise = studentIds.length > 0
+          ? studentProfiles.getByIds(studentIds)
+          : Promise.resolve([]);
 
-        return studentProfiles.getByIds(studentIds).then((profiles: StudentProfileSummary[]) => {
-          if (!isMounted) return;
+        const [profilesResult, applicationsResult] = await Promise.allSettled([
+          profilePromise,
+          studentApplications.getByJob(job.id),
+        ]);
+
+        if (!isMounted) return;
+
+        if (profilesResult.status === 'fulfilled') {
           const map: Record<string, StudentProfileSummary> = {};
-          for (const profile of profiles || []) {
+          for (const profile of profilesResult.value || []) {
             if (profile?.studentId) {
               map[profile.studentId] = profile;
             }
           }
           setStudentsById(map);
-        });
-      })
-      .catch((err: Error) => {
+        } else {
+          setStudentsById({});
+        }
+
+        if (applicationsResult.status === 'fulfilled') {
+          const appMap: Record<string, { id: string; status?: string }> = {};
+          const apps = Array.isArray(applicationsResult.value) ? applicationsResult.value : [];
+          for (const app of apps) {
+            const studentId = (app as any)?.studentId;
+            const appId = (app as any)?.id;
+            if (studentId && appId) {
+              appMap[String(studentId)] = {
+                id: String(appId),
+                status: (app as any)?.applicationStatus || (app as any)?.status,
+              };
+            }
+          }
+          setApplicationsByStudentId(appMap);
+        } else {
+          setApplicationsByStudentId({});
+        }
+      } catch (err: any) {
         if (!isMounted) return;
         setMatchingError(err?.message || "Erreur lors du chargement du matching.");
-      })
-      .finally(() => {
+        setMatchingResults([]);
+        setStudentsById({});
+        setApplicationsByStudentId({});
+      } finally {
         if (!isMounted) return;
         setMatchingLoading(false);
-      });
+      }
+    };
+
+    const handleFocus = () => {
+      loadMatching();
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState == "visible") {
+        loadMatching();
+      }
+    };
+
+    loadMatching();
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("popstate", handleFocus);
 
     return () => {
       isMounted = false;
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("popstate", handleFocus);
     };
   }, [job?.id, user, isCampaignLocked]);
 
@@ -188,6 +243,7 @@ export default function JobDetailsPage() {
     return [...matchingResults].sort((a, b) => b.matchScore - a.matchScore);
   }, [matchingResults]);
 
+
   const requirements = useMemo(() => {
     return (job?.requirements || '').split('\n').map((item) => item.trim()).filter(Boolean);
   }, [job?.requirements]);
@@ -213,8 +269,107 @@ export default function JobDetailsPage() {
   const getInterviewMailto = (email?: string, studentName?: string) => {
     if (!email) return "#";
     const subject = `Entretien StepIn - ${job?.title || "Offre"}`;
-    const body = `Bonjour ${studentName || "},"}\n\nNous souhaitons programmer une entrevue suite à votre candidature.\n\nBien cordialement,`;
+    const greeting = studentName ? `Bonjour ${studentName},` : "Bonjour,";
+    const body = `${greeting}\n\nNous souhaitons programmer une entrevue suite à votre candidature.\n\nBien cordialement,`;
     return `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
+
+  const selectedCount = selectedStudentIds.length;
+
+  const updateApplicationStatus = async (studentId: string, status: "selected_for_interview" | "submitted") => {
+    const applicationId = applicationsByStudentId[studentId]?.id;
+    if (!applicationId) {
+      setSelectionError("Aucune candidature associee a cet etudiant.");
+      return;
+    }
+    setUpdatingStudentIds((prev) => (prev.includes(studentId) ? prev : [...prev, studentId]));
+    setSelectionError(null);
+    try {
+      await studentApplications.updateStatus(applicationId, status);
+      setApplicationsByStudentId((prev) => ({
+        ...prev,
+        [studentId]: { ...prev[studentId], status },
+      }));
+      if (status == "selected_for_interview") {
+        setSelectedStudentIds((prev) => (prev.includes(studentId) ? prev : [...prev, studentId]));
+      } else {
+        setSelectedStudentIds((prev) => prev.filter((id) => id != studentId));
+      }
+    } catch (err: any) {
+      setSelectionError(err?.message || "Erreur lors de la mise a jour de la candidature.");
+    } finally {
+      setUpdatingStudentIds((prev) => prev.filter((id) => id != studentId));
+    }
+  };
+
+  const toggleStudentSelection = (studentId: string) => {
+    setSelectedStudentIds((prev) =>
+      prev.includes(studentId)
+        ? prev.filter((id) => id !== studentId)
+        : [...prev, studentId],
+    );
+  };
+
+  const handleSendSelection = async () => {
+    if (!job?.id || selectedStudentIds.length === 0) return;
+    setSelectionSending(true);
+    setSelectionError(null);
+    setSelectionMessage(null);
+
+    const selectedApplications = selectedStudentIds
+      .map((studentId) => applicationsByStudentId[studentId]?.id)
+      .filter(Boolean) as string[];
+
+    const missingCount = selectedStudentIds.length - selectedApplications.length;
+    if (selectedApplications.length === 0) {
+      setSelectionError("Aucune candidature associee aux etudiants selectionnes.");
+      setSelectionSending(false);
+      return;
+    }
+
+    try {
+      await Promise.all(
+        selectedApplications.map((applicationId) =>
+          studentApplications.updateStatus(applicationId, "selected_for_interview"),
+        ),
+      );
+
+      setApplicationsByStudentId((prev) => {
+        const next = { ...prev };
+        for (const studentId of selectedStudentIds) {
+          if (next[studentId]) {
+            next[studentId] = { ...next[studentId], status: "selected_for_interview" };
+          }
+        }
+        return next;
+      });
+
+      const emails = selectedStudentIds
+        .map((studentId) => studentsById[studentId]?.email)
+        .filter(Boolean) as string[];
+
+      const updatedText = `${selectedApplications.length} candidature${selectedApplications.length > 1 ? "s" : ""} mise${selectedApplications.length > 1 ? "s" : ""} a jour.`;
+      const missingText = missingCount > 0
+        ? ` ${missingCount} candidat${missingCount > 1 ? "s" : ""} sans candidature associee.`
+        : "";
+      let emailText = " Aucun email disponible pour ces candidats.";
+
+      if (emails.length > 0) {
+        const subject = `Entretien StepIn - ${job?.title || "Offre"}`;
+        const body = "Bonjour,\n\nNous souhaitons programmer une entrevue suite a votre candidature.\n\nBien cordialement,";
+        const mailto = `mailto:${emails.join(";")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.location.href = mailto;
+        emailText = " Email pret a envoyer dans votre client.";
+      }
+
+      setSelectionMessage(`${updatedText}${missingText}${emailText}`);
+
+      setSelectedStudentIds([]);
+    } catch (err: any) {
+      setSelectionError(err?.message || "Erreur lors de la mise a jour des candidatures.");
+    } finally {
+      setSelectionSending(false);
+    }
   };
 
   if (loading) {
@@ -412,12 +567,18 @@ export default function JobDetailsPage() {
             {/* Best Candidates (matching) */}
             {user?.role === 'company' && job.campaignId && isCampaignLocked && (
               <div className="bg-white rounded-xl shadow-sm border p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold text-gray-900">Meilleurs candidats</h2>
-                  <Badge variant="outline" className="text-xs">
-                    {sortedMatches.length} candidat{sortedMatches.length > 1 ? 's' : ''}
-                  </Badge>
-                </div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-semibold text-gray-900">Meilleurs candidats</h2>
+                    <Badge variant="outline" className="text-xs">
+                      {sortedMatches.length} candidat{sortedMatches.length > 1 ? 's' : ''}
+                    </Badge>
+                  </div>                </div>
+
+
+                {selectionError && (
+                  <p className="text-red-600 text-sm mb-3">{selectionError}</p>
+                )}
 
                 {matchingLoading && (
                   <p className="text-gray-600 text-sm">Chargement des résultats de matching...</p>
@@ -438,11 +599,20 @@ export default function JobDetailsPage() {
                     {sortedMatches.map((result, index) => {
                       const profile = studentsById[result.studentId];
                       const name = getStudentName(profile);
+                      const application = applicationsByStudentId[result.studentId];
+                      const alreadySelected = application?.status === "selected_for_interview";
+                      const hasApplication = Boolean(application?.id);
+                      const isSelected = selectedStudentIds.includes(result.studentId);
                       const rowKey = result.id || `${result.studentId}-${result.jobId}`;
                       const mailto = getInterviewMailto(profile?.email, name);
 
                       return (
-                        <div key={rowKey} className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border border-gray-200 rounded-lg p-4">
+                        <div
+                          key={rowKey}
+                          className={`flex flex-col md:flex-row md:items-center md:justify-between gap-3 border rounded-lg p-4 ${
+                            isSelected ? "border-blue-200 bg-blue-50/30" : "border-gray-200"
+                          }`}
+                        >
                           <div>
                             <p className="text-sm font-semibold text-gray-900">
                               #{index + 1} {name}
@@ -450,21 +620,54 @@ export default function JobDetailsPage() {
                             {profile?.email && (
                               <p className="text-xs text-gray-500">{profile.email}</p>
                             )}
+                            {!hasApplication && (
+                              <p className="text-xs text-amber-600 mt-1">
+                                Aucune candidature associée à cet étudiant.
+                              </p>
+                            )}
+                            {alreadySelected && (
+                              <p className="text-xs text-emerald-600 mt-1">
+                                Sélectionné pour entretien.
+                              </p>
+                            )}
                             {result.reasoning && (
                               <p className="text-xs text-gray-500 mt-1">{result.reasoning}</p>
                             )}
                           </div>
-                          <div className="flex gap-2">
-                            <Link href={`/students/${result.studentId}`}>
-                              <Button variant="outline" size="sm">
+                          <div className="flex flex-wrap gap-2 justify-end">
+                            <Link href={`/jobs/${job.id}/matches/${result.studentId}`}>
+                              <Button variant="outline" size="sm" className="w-full sm:w-auto">
                                 Détails
                               </Button>
                             </Link>
-                            <a href={mailto}>
-                              <Button size="sm" disabled={!profile?.email}>
-                                Programmer une entrevue
+                            {alreadySelected || isSelected ? (
+                              <>
+                                <a href={mailto}>
+                                  <Button size="sm" className="w-full sm:w-auto" disabled={!profile?.email}>
+                                    Programmer une entrevue
+                                  </Button>
+                                </a>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => updateApplicationStatus(result.studentId, "submitted")}
+                                  disabled={!hasApplication || updatingStudentIds.includes(result.studentId)}
+                                  className="w-full sm:w-auto"
+                                >
+                                  Annuler la selection
+                                </Button>
+                              </>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => updateApplicationStatus(result.studentId, "selected_for_interview")}
+                                disabled={!hasApplication || updatingStudentIds.includes(result.studentId)}
+                                className="w-full sm:w-auto"
+                              >
+                                Selectionner pour entretien
                               </Button>
-                            </a>
+                            )}
                           </div>
                         </div>
                       );
