@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Building, Briefcase } from 'lucide-react';
 import Link from 'next/link';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { getServiceUrl } from "@/config/api.config";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,7 +19,6 @@ interface Participant {
 interface Company {
   id: string;
   name: string;
-  logo?: string;
 }
 
 export default function ParticipantsPage() {
@@ -105,13 +104,11 @@ export default function ParticipantsPage() {
             {participants.map((participant) => {
               const company = companyMap[participant.companyId];
               const companyName = company?.name || participant.companyId || 'Entreprise';
-              const companyLogo = company?.logo || undefined;
               const companyInitial = companyName?.[0] || '?';
               return (
               <div key={participant.companyId} className="bg-white rounded-xl shadow-sm border p-6">
                 <div className="flex items-start gap-4 mb-4">
                   <Avatar className="h-12 w-12">
-                    <AvatarImage src={companyLogo} />
                     <AvatarFallback>{companyInitial}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import {
@@ -9,7 +9,6 @@ import {
   MapPin,
   Users,
   Building,
-  Upload,
   Plus,
   Trash2,
   Info,
@@ -27,7 +26,6 @@ export default function NewSchoolCampaignPage() {
   const router = useRouter();
   const { createCampaign, inviteCompany, loading, error } = useCampaigns();
   const { user } = useAuth();
-  const imageInputRef = useRef<HTMLInputElement | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -37,7 +35,6 @@ export default function NewSchoolCampaignPage() {
     endDate: "",
     location: "",
     maxParticipants: "",
-    image: null as File | null,
     requirements: [""],
     benefits: [""],
     tags: [""],
@@ -59,8 +56,6 @@ export default function NewSchoolCampaignPage() {
     endDate: "Date de fin de l'événement ou de la période de recrutement",
     location: "Lieu de l'événement ou zone géographique concernée",
     maxParticipants: "Nombre maximum d'entreprises pouvant participer",
-    image:
-      "Une image représentative de votre école ou de l'événement (format recommandé: 16:9)",
     requirements:
       "Critères que les entreprises doivent remplir pour participer",
     benefits: "Avantages pour les entreprises participantes",
@@ -168,15 +163,6 @@ export default function NewSchoolCampaignPage() {
       ...prev,
       [field]: prev[field].filter((_, i) => i !== index),
     }));
-  };
-
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] || null;
-    setFormData((prev) => ({ ...prev, image: file }));
-  };
-
-  const handleImageBrowse = () => {
-    imageInputRef.current?.click();
   };
 
   return (
@@ -430,44 +416,21 @@ export default function NewSchoolCampaignPage() {
           {/* Image */}
           <div className="space-y-4 border-2 border-dashed border-gray-300 rounded-lg p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
-                Image de la campagne
-                <div className="group relative">
-                  <Info className="h-4 w-4 text-gray-400 cursor-help" />
-                  <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                    {tooltips.image}
-                  </div>
-                </div>
+              <h2 className="text-lg font-medium text-gray-900">
+                Apercu de l'image
               </h2>
             </div>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8">
-              <div className="flex flex-col items-center">
-                <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                <p className="text-sm text-gray-500">
-                  Glissez-déposez une image ou
+            <div className="flex items-center gap-4">
+              <div className="h-16 w-16 rounded-lg bg-slate-100 border flex items-center justify-center text-xl font-semibold text-slate-500">
+                {(formData.title?.trim()?.[0] || "C").toUpperCase()}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-700">
+                  Image automatique
                 </p>
-                <input
-                  id="campaign-image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  ref={imageInputRef}
-                  className="hidden"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                  onClick={handleImageBrowse}
-                >
-                  Parcourir
-                </Button>
-                {formData.image && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    Fichier sélectionné : {formData.image.name}
-                  </p>
-                )}
+                <p className="text-sm text-gray-500">
+                  Base sur le titre de la campagne.
+                </p>
               </div>
             </div>
           </div>

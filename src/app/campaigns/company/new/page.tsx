@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Upload, Plus, Trash2, Info } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Info } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +30,6 @@ function NewCompanyCampaignPageContent() {
     endDate: '',
     location: '',
     maxParticipants: '',
-    image: null as File | null,
     requirements: [''],
     benefits: [''],
     tags: ['']
@@ -80,7 +79,6 @@ function NewCompanyCampaignPageContent() {
     endDate: "Date limite de candidature",
     location: "Lieu de travail principal (présentiel, hybride, télétravail)",
     maxParticipants: "Nombre de postes à pourvoir pour cette campagne",
-    image: "Une image représentative de votre entreprise ou du poste (format recommandé: 16:9)",
     requirements: "Compétences, expériences ou qualifications requises pour le poste",
     benefits: "Avantages proposés (salaire, RTT, tickets restaurant, mutuelle, etc.)",
     tags: "Mots-clés permettant de catégoriser et de retrouver facilement votre offre"
@@ -425,37 +423,27 @@ function NewCompanyCampaignPageContent() {
             </div>
           </div>
 
-          {/* Image */}
+          {/* Apercu logo */}
           <div className="space-y-4 border-2 border-dashed bg-white border-gray-300 rounded-lg p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
-                Image du poste
-                <div className="group relative">
-                  <Info className="h-4 w-4 text-gray-400 cursor-help" />
-                  <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                    {tooltips.image}
-                  </div>
-                </div>
-              </h2>
+              <h2 className="text-lg font-medium text-gray-900">Apercu du logo</h2>
             </div>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8">
-              <div className="flex flex-col items-center">
-                <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                <p className="text-sm text-gray-500">
-                  Glissez-déposez une image ou
-                </p>
-                <Button variant="outline" size="sm" className="mt-2">
-                  Parcourir
-                </Button>
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 rounded-full bg-slate-100 border flex items-center justify-center text-lg font-semibold text-slate-500">
+                {(formData.title?.trim()?.[0] || "P").toUpperCase()}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-700">Logo automatique</p>
+                <p className="text-sm text-gray-500">Base sur le titre du poste.</p>
               </div>
             </div>
           </div>
 
-          {/* Prérequis */}
-          <div className="space-y-4 border-2 border-dashed bg-white border-gray-300 rounded-lg p-6">
+          {/* Prerequis */}
+          <div className="space-y-4 border-2 border-dashed border-gray-300 bg-white rounded-lg p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
-                Prérequis
+                Prerequis
                 <div className="group relative">
                   <Info className="h-4 w-4 text-gray-400 cursor-help" />
                   <div className="invisible group-hover:visible absolute left-0 w-64 px-2 py-1 mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
@@ -468,14 +456,16 @@ function NewCompanyCampaignPageContent() {
               <div key={index} className="flex gap-2">
                 <Input
                   value={req}
-                  onChange={(e) => handleArrayChange('requirements', index, e.target.value)}
-                  placeholder="Ex: 2 ans d'expérience en React"
+                  onChange={(e) =>
+                    handleArrayChange("requirements", index, e.target.value)
+                  }
+                  placeholder="Ex: Maitrise de React"
                 />
                 <Button
                   type="button"
                   variant="outline"
                   size="icon"
-                  onClick={() => removeArrayItem('requirements', index)}
+                  onClick={() => removeArrayItem("requirements", index)}
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -484,16 +474,16 @@ function NewCompanyCampaignPageContent() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => addArrayItem('requirements')}
+              onClick={() => addArrayItem("requirements")}
               className="w-full"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Ajouter un prérequis
+              Ajouter un prerequis
             </Button>
           </div>
 
           {/* Avantages */}
-          <div className="space-y-4 border-2 border-dashed bg-white border-gray-300 rounded-lg p-6">
+          <div className="space-y-4 border-2 border-dashed border-gray-300 bg-white rounded-lg p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
                 Avantages
@@ -509,14 +499,16 @@ function NewCompanyCampaignPageContent() {
               <div key={index} className="flex gap-2">
                 <Input
                   value={benefit}
-                  onChange={(e) => handleArrayChange('benefits', index, e.target.value)}
+                  onChange={(e) =>
+                    handleArrayChange("benefits", index, e.target.value)
+                  }
                   placeholder="Ex: Tickets restaurant"
                 />
                 <Button
                   type="button"
                   variant="outline"
                   size="icon"
-                  onClick={() => removeArrayItem('benefits', index)}
+                  onClick={() => removeArrayItem("benefits", index)}
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -525,7 +517,7 @@ function NewCompanyCampaignPageContent() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => addArrayItem('benefits')}
+              onClick={() => addArrayItem("benefits")}
               className="w-full"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -534,7 +526,7 @@ function NewCompanyCampaignPageContent() {
           </div>
 
           {/* Tags */}
-          <div className="space-y-4 border-2 border-dashed bg-white border-gray-300 rounded-lg p-6">
+          <div className="space-y-4 border-2 border-dashed border-gray-300 bg-white rounded-lg p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
                 Domaines
@@ -547,50 +539,46 @@ function NewCompanyCampaignPageContent() {
               </h2>
             </div>
             <div className="flex flex-wrap gap-2 mb-4">
-              {formData.tags.filter(tag => tag).map((tag, index) => (
-                <Badge key={index} variant="outline">
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => removeArrayItem('tags', index)}
-                    className="ml-2 hover:text-red-500"
-                  >
-                    ×
-                  </button>
-                </Badge>
-              ))}
+              {formData.tags
+                .filter((tag) => tag)
+                .map((tag, index) => (
+                  <Badge key={index} variant="outline">
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeArrayItem("tags", index)}
+                      className="ml-2 hover:text-red-500"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                ))}
             </div>
-            <div className="flex gap-2 ">
+            <div className="flex gap-2">
               <Input
-                placeholder="Ex: Développement web"
+                placeholder="Ex: Data"
                 value={formData.tags[formData.tags.length - 1]}
-                onChange={(e) => handleArrayChange('tags', formData.tags.length - 1, e.target.value)}
+                onChange={(e) =>
+                  handleArrayChange(
+                    "tags",
+                    formData.tags.length - 1,
+                    e.target.value
+                  )
+                }
               />
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => addArrayItem('tags')}
+                onClick={() => addArrayItem("tags")}
               >
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
           </div>
 
-          {/* Submit */}
           <div className="pt-6 border-t">
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={submitting}
-            >
-              {submitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Création en cours...
-                </>
-              ) : (
-                'Ajouter le poste'
-              )}
+            <Button type="submit" className="w-full" disabled={submitting}>
+              {submitting ? "Ajout en cours..." : "Ajouter le poste"}
             </Button>
           </div>
         </form>

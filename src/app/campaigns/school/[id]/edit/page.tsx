@@ -4,14 +4,14 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { getServiceUrl } from '@/config/api.config';
-import { ArrowLeft, Upload, Plus, Trash2, Info, Search, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Info, Search, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { companiesData, Company } from '@/data/companiesData';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from 'sonner';
 
@@ -33,7 +33,6 @@ export default function EditSchoolCampaignPage() {
     endDate: '',
     location: '',
     maxParticipants: '',
-    image: null as File | null,
     requirements: [''],
     benefits: [''],
     tags: [''],
@@ -66,7 +65,6 @@ export default function EditSchoolCampaignPage() {
         endDate: data?.endDate ? data.endDate.split('T')[0] : '',
         location: data?.location || '',
         maxParticipants: data?.maxParticipants?.toString() || '',
-        image: null,
         requirements: Array.isArray(data?.requirements) ? data.requirements : [''],
         benefits: Array.isArray(data?.benefits) ? data.benefits : [''],
         tags: Array.isArray(data?.tags) ? data.tags : [''],

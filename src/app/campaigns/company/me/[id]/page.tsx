@@ -25,7 +25,7 @@ import Link from 'next/link';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { 
   Dialog, 
   DialogContent, 
@@ -368,7 +368,6 @@ export default function CompanyCampaignDetailsPage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex gap-4">
               <Avatar className="h-16 w-16">
-                <AvatarImage src={displayCampaign.company.logo} alt={displayCampaign.company.name} />
                 <AvatarFallback>{displayCampaign.company.name?.[0] || "E"}</AvatarFallback>
               </Avatar>
               
@@ -472,12 +471,10 @@ export default function CompanyCampaignDetailsPage() {
                 
                 {/* Image */}
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                  <div className="aspect-video bg-slate-100">
-                    <img 
-                      src={displayCampaign.image || '/placeholder.jpg'} 
-                      alt={displayCampaign.title}
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="aspect-video bg-slate-100 flex items-center justify-center">
+                    <div className="h-24 w-24 rounded-xl bg-slate-100 border flex items-center justify-center text-2xl font-semibold text-slate-500">
+                      {(displayCampaign.title?.trim()?.[0] || "O").toUpperCase()}
+                    </div>
                   </div>
                 </div>
 

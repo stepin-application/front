@@ -6,7 +6,7 @@ import { ArrowLeft, Calendar, MapPin, Building, CheckCircle2, Clock, XCircle, Sh
 import Link from 'next/link';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from '@/contexts/AuthContext';
 import { campaigns, directory, invitations as invitationsApi, jobOpenings, studentApplications } from "@/lib/api";
@@ -367,7 +367,6 @@ export default function CampaignDetailsPage() {
           <div className="flex items-start justify-between">
             <div className="flex gap-4">
               <Avatar className="h-16 w-16">
-                <AvatarImage src={campaign.createdBy.logo} />
                 <AvatarFallback>{campaign.createdBy.name[0]}</AvatarFallback>
               </Avatar>
               
@@ -509,12 +508,10 @@ export default function CampaignDetailsPage() {
           <div className="col-span-2 space-y-8">
             
             {/* Image */}
-            <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
-              <img 
-                src={campaign.image || '/placeholder.jpg'} 
-                alt={campaign.title}
-                className="w-full h-full object-cover"
-              />
+            <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+              <div className="h-24 w-24 rounded-xl bg-slate-100 border flex items-center justify-center text-2xl font-semibold text-slate-500">
+                {(campaign.title?.trim()?.[0] || "C").toUpperCase()}
+              </div>
             </div>
 
             {/* Description */}
