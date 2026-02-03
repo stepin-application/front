@@ -742,20 +742,6 @@ export default function CampaignDetailsPage() {
               </div>
 
               <div>
-                <h3 className="text-sm font-medium text-gray-500">Deadline étudiants</h3>
-                <p className="text-gray-900 text-sm">
-                  {((campaign as any).studentDeadline ? 
-                    new Date((campaign as any).studentDeadline).toLocaleDateString('fr-FR') : 
-                    'Non définie')}
-                </p>
-                {user?.role === 'student' && daysUntilDeadline > 0 && (
-                  <p className="text-xs text-orange-600 mt-1">
-                    Plus que {daysUntilDeadline} jour{daysUntilDeadline > 1 ? 's' : ''}
-                  </p>
-                )}
-              </div>
-
-              <div>
                 <h3 className="text-sm font-medium text-gray-500">Participants</h3>
                 <p className="text-gray-900">{campaign.participants} candidatures</p>
                 {campaign.maxParticipants && (
