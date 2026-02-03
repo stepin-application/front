@@ -15,6 +15,9 @@ export default function ChangePasswordPage() {
 
   const authBase = getServiceUrl("auth");
   const email = useMemo(() => {
+    if (typeof window === "undefined") {
+      return user?.email || "";
+    }
     if (user?.email) return user.email;
     const stored = localStorage.getItem("user");
     if (stored) {

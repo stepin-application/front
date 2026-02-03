@@ -25,7 +25,8 @@ interface Invitation {
     id: string;
     name: string;
     description: string;
-    deadline: string;
+    companyDeadline: string;
+    studentDeadline: string;
     status: 'OPEN' | 'LOCKED';
     schoolId: string;
   };
@@ -208,7 +209,7 @@ export default function CompanyInvitationsPage() {
             {filteredInvitations.map((invitation, index) => {
               const statusConfig = getStatusConfig(invitation.status);
               const StatusIcon = statusConfig.icon;
-              const isDeadlinePassed = new Date(invitation.campaign.deadline) < new Date();
+              const isDeadlinePassed = new Date(invitation.campaign.companyDeadline) < new Date();
               const canRespond = invitation.status === 'INVITED' && !isDeadlinePassed && invitation.campaign.status === 'OPEN';
 
               return (
@@ -243,7 +244,7 @@ export default function CompanyInvitationsPage() {
                           <div className="flex items-center gap-1">
                             <Calendar className="w-4 h-4" />
                             <span>
-                                Deadline : {new Date(invitation.campaign.deadline).toLocaleDateString('fr-FR')}
+                                Deadline : {new Date(invitation.campaign.companyDeadline).toLocaleDateString('fr-FR')}
                             </span>
                           </div>
                         </div>
@@ -253,7 +254,7 @@ export default function CompanyInvitationsPage() {
 
                     {invitation.status === 'INVITED' && (
                       <div className="mb-4">
-                        <DeadlineWarning deadline={invitation.campaign.deadline} />
+                        <DeadlineWarning deadline={invitation.campaign.companyDeadline} />
                       </div>
                     )}
 

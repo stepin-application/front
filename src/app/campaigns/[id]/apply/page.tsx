@@ -303,29 +303,53 @@ export default function ApplyToCampaign() {
   }
 
   // Vérifier si la deadline est passée
-  const isDeadlinePassed = new Date() > new Date(campaign.studentDeadline)
+  const now = new Date()
+  const companyDeadline = new Date(campaign.companyDeadline)
+  const studentDeadline = new Date(campaign.studentDeadline)
 
-  if (isDeadlinePassed) {
+  if (now < companyDeadline) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Clock className="w-16 h-16 text-orange-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Deadline dépassée</h2>
+          <Clock className="w-16 h-16 text-blue-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Candidatures pas encore ouvertes</h2>
           <p className="text-gray-600 mb-4">
-            La deadline pour candidater à cette campagne était le {new Date(campaign.studentDeadline).toLocaleDateString()}.
+            Les candidatures ouvriront apr?s la deadline entreprises le {companyDeadline.toLocaleDateString()}.
           </p>
           <button
             onClick={() => router.push('/campaigns')}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Découvrir d'autres opportunités
+            Retour aux campagnes
           </button>
         </div>
       </div>
     )
   }
 
-  const selectedJobOpening = jobOpenings.find(job => job.id === form.jobOpeningId)
+  const isDeadlinePassed = now > studentDeadline
+
+  if (isDeadlinePassed) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Clock className="w-16 h-16 text-orange-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Deadline d?pass?e</h2>
+          <p className="text-gray-600 mb-4">
+            La deadline pour candidater ? cette campagne ?tait le {new Date(campaign.studentDeadline).toLocaleDateString()}.
+          </p>
+          <button
+            onClick={() => router.push('/campaigns')}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            D?couvrir d'autres opportunit?s
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+const selectedJobOpening = jobOpenings.find(job => job.id === form.jobOpeningId)
 
   return (
     <div className="min-h-screen bg-gray-50 pt-20">

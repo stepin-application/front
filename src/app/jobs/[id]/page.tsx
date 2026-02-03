@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -30,7 +30,8 @@ interface JobOpening {
 interface CampaignResponse {
   id: string;
   status?: string;
-  deadline?: string;
+  companyDeadline?: string;
+  studentDeadline?: string;
   startDate?: string;
 }
 
@@ -121,8 +122,8 @@ export default function JobDetailsPage() {
     if (!campaignData) return false;
     const status = (campaignData.status || '').toUpperCase();
     if (status === 'LOCKED') return true;
-    if (campaignData.deadline) {
-      const deadline = new Date(campaignData.deadline);
+    if (campaignData.studentDeadline) {
+      const deadline = new Date(campaignData.studentDeadline);
       if (!Number.isNaN(deadline.getTime())) {
         return deadline.getTime() < Date.now();
       }
@@ -261,7 +262,21 @@ export default function JobDetailsPage() {
     return (job?.tags || '').split(',').map((item) => item.trim()).filter(Boolean);
   }, [job?.tags]);
 
-  const canApply = user?.role === 'student';
+  const isApplicationWindowOpen = useMemo(() => {
+    if (!campaignData) return false;
+    const now = new Date();
+    if (campaignData.companyDeadline) {
+      const companyDate = new Date(campaignData.companyDeadline);
+      if (now < companyDate) return false;
+    }
+    if (campaignData.studentDeadline) {
+      const studentDate = new Date(campaignData.studentDeadline);
+      if (now > studentDate) return false;
+    }
+    return true;
+  }, [campaignData]);
+
+  const canApply = user?.role === 'student' && isApplicationWindowOpen && !isCampaignLocked;
   const hasApplied = eligibility?.hasExistingApplication || false;
 
   const getStudentName = (profile?: StudentProfileSummary) => {
@@ -733,6 +748,19 @@ export default function JobDetailsPage() {
           <div className="space-y-6">
             
             {/* Apply Card */}
+            {user?.role === 'student' && campaignData && !isApplicationWindowOpen && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-blue-900 mb-2">Candidatures fermées</h3>
+                <p className="text-blue-800 text-sm">
+                  {campaignData.companyDeadline && new Date() < new Date(campaignData.companyDeadline)
+                    ? `Les candidatures ouvrent après la deadline entreprises le ${new Date(campaignData.companyDeadline).toLocaleDateString('fr-FR')}.`
+                    : campaignData.studentDeadline
+                      ? `La deadline étudiants est passée depuis le ${new Date(campaignData.studentDeadline).toLocaleDateString('fr-FR')}.`
+                      : "La période de candidature n'est pas ouverte."}
+                </p>
+              </div>
+            )}
+
             {canApply && !hasApplied && !checkingEligibility && (
               <div className="bg-white rounded-xl shadow-sm border p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Candidater</h3>

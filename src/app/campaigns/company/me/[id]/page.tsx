@@ -84,7 +84,8 @@ interface CampaignResponse {
   id: string;
   name?: string;
   description?: string;
-  deadline?: string;
+  companyDeadline?: string;
+  studentDeadline?: string;
   startDate?: string;
   status?: string;
   createdAt?: string;
@@ -178,8 +179,8 @@ export default function CompanyCampaignDetailsPage() {
     if (campaignData?.status === "LOCKED") {
       return true;
     }
-    if (campaignData?.deadline) {
-      const deadline = new Date(campaignData.deadline);
+    if (campaignData?.studentDeadline) {
+      const deadline = new Date(campaignData.studentDeadline);
       if (!Number.isNaN(deadline.getTime())) {
         return deadline.getTime() < Date.now();
       }
@@ -198,7 +199,7 @@ export default function CompanyCampaignDetailsPage() {
         title: job.title,
         description: job.description,
         startDate: campaignData?.startDate,
-        endDate: campaignData?.deadline,
+        endDate: campaignData?.studentDeadline,
         location: job.location || "Non renseigné",
         maxParticipants: job.maxParticipants ?? 0,
         currentParticipants: 0,

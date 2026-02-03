@@ -23,7 +23,7 @@ export default function EditSchoolCampaignPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [campaignStatus, setCampaignStatus] = useState<'OPEN' | 'LOCKED'>('OPEN');
-  const [deadline, setDeadline] = useState('');
+  const [studentDeadline, setStudentDeadline] = useState('');
   const campaignBase = getServiceUrl("campaign");
   
   const [formData, setFormData] = useState({
@@ -72,7 +72,7 @@ export default function EditSchoolCampaignPage() {
       });
       setSelectedCompanies(Array.isArray(data?.invitedCompanies) ? data.invitedCompanies : []);
       setCampaignStatus(data?.status || 'OPEN');
-      setDeadline(data?.deadline || '');
+      setStudentDeadline(data?.studentDeadline || '');
     } catch (error) {
       console.error('Error:', error);
       toast.error('Erreur lors du chargement de la campagne');
@@ -153,7 +153,7 @@ export default function EditSchoolCampaignPage() {
   };
 
   const isLocked = campaignStatus === 'LOCKED';
-  const isDeadlinePassed = new Date(deadline) < new Date();
+  const isDeadlinePassed = new Date(studentDeadline) < new Date();
   const canEdit = !isLocked && !isDeadlinePassed;
 
   if (loading) {
@@ -175,7 +175,7 @@ export default function EditSchoolCampaignPage() {
         {!canEdit && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <p className="text-sm text-red-800 font-medium">
-              {isLocked ? '🔒 Cette campagne est verrouillée' : '⏰ La deadline est dépassée'}
+              {isLocked ? '🔒 Cette campagne est verrouillée' : '⏰ La deadline étudiants est dépassée'}
             </p>
             <p className="text-sm text-red-600 mt-1">
               Vous ne pouvez plus modifier cette campagne.

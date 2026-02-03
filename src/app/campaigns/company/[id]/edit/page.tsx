@@ -16,7 +16,7 @@ export default function EditCompanyJobPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [campaignStatus, setCampaignStatus] = useState<'OPEN' | 'LOCKED' | null>(null);
-  const [deadline, setDeadline] = useState<string | null>(null);
+  const [companyDeadline, setCompanyDeadline] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -55,7 +55,7 @@ export default function EditCompanyJobPage() {
       
       if (data.campaign) {
         setCampaignStatus(data.campaign.status);
-        setDeadline(data.campaign.deadline);
+        setCompanyDeadline(data.campaign.companyDeadline);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -114,7 +114,7 @@ export default function EditCompanyJobPage() {
   };
 
   const isLocked = campaignStatus === 'LOCKED';
-  const isDeadlinePassed = deadline ? new Date(deadline) < new Date() : false;
+  const isDeadlinePassed = companyDeadline ? new Date(companyDeadline) < new Date() : false;
   const canEdit = !isLocked && !isDeadlinePassed;
 
   if (loading) {

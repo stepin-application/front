@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -119,10 +119,10 @@ export default function CampaignDetailsPage() {
           id: campaignData?.id,
           title: campaignData?.name ?? campaignData?.title ?? 'Campagne',
           description: campaignData?.description ?? '',
-          companyDeadline: campaignData?.deadline ?? '',
-          studentDeadline: campaignData?.deadline ?? '',
+          companyDeadline: campaignData?.companyDeadline ?? '',
+          studentDeadline: campaignData?.studentDeadline ?? '',
           startDate: campaignData?.createdAt ?? '',
-          endDate: campaignData?.deadline ?? '',
+          endDate: campaignData?.studentDeadline ?? '',
           location: campaignData?.location ?? '—',
           status: campaignData?.status ?? 'OPEN',
           maxParticipants: campaignData?.maxParticipants ?? undefined,
@@ -240,17 +240,18 @@ export default function CampaignDetailsPage() {
     if (!isAuthenticated || user?.role !== 'student') return false;
     if (campaign.status !== 'active' && campaign.status !== 'OPEN') return false;
     if (campaign.target !== 'students' && campaign.target !== 'both') return false;
-    
-    // Vérifier si la deadline étudiante est passée
+
+    // Fen?tre de candidatures: apr?s deadline entreprise, avant deadline ?tudiante
     const now = new Date();
     const campaignAny = campaign as any;
-    const studentDeadline = campaignAny.studentDeadline || campaignAny.companyDeadline || campaignAny.endDate;
-    if (!studentDeadline) return false;
-    const deadline = new Date(studentDeadline);
-    return now <= deadline;
+    const companyDeadline = campaignAny.companyDeadline;
+    const studentDeadline = campaignAny.studentDeadline || campaignAny.endDate;
+    if (!companyDeadline || !studentDeadline) return false;
+    const companyDate = new Date(companyDeadline);
+    const studentDate = new Date(studentDeadline);
+    return now >= companyDate && now <= studentDate;
   };
 
-  // Vérifier si c'est une campagne de l'utilisateur connecté
   const isOwnCampaign = () => {
     if (!isAuthenticated) return false;
     return campaign.createdBy.id === user?.companyId || campaign.createdBy.id === user?.schoolId;
@@ -269,6 +270,9 @@ export default function CampaignDetailsPage() {
   };
 
   const daysUntilDeadline = getDaysUntilDeadline();
+  const campaignAny = campaign as any;
+  const companyDeadlineDate = campaignAny.companyDeadline ? new Date(campaignAny.companyDeadline) : null;
+  const isBeforeCompanyDeadline = companyDeadlineDate ? new Date() < companyDeadlineDate : false;
 
   const getApplicationStatusDisplay = (jobId: string) => {
     const eligibility = applicationEligibilities[jobId];
@@ -490,6 +494,17 @@ export default function CampaignDetailsPage() {
             </div>
           </div>
         </div>
+
+        {user?.role === 'student' && isBeforeCompanyDeadline && companyDeadlineDate && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center">
+              <AlertTriangle className="w-5 h-5 text-blue-600 mr-2" />
+              <p className="text-blue-800">
+                Les candidatures ouvriront après la deadline entreprises le {companyDeadlineDate.toLocaleDateString('fr-FR')}.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Alerte deadline pour étudiants */}
         {user?.role === 'student' && campaign.status === 'active' && daysUntilDeadline <= 7 && daysUntilDeadline > 0 && (

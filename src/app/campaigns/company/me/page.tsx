@@ -24,7 +24,8 @@ interface JobOpening {
     id: string;
     title: string;
     status: 'OPEN' | 'LOCKED';
-    deadline: string;
+    companyDeadline: string;
+    studentDeadline: string;
   };
 }
 
@@ -203,7 +204,7 @@ export default function CompanyJobsPage() {
             ) : (
               <div className="space-y-4">
                 {filteredJobs.map((job) => {
-                  const canEdit = !job.campaign || (job.campaign.status === 'OPEN' && new Date(job.campaign.deadline) > new Date());
+                  const canEdit = !job.campaign || (job.campaign.status === 'OPEN' && new Date(job.campaign.companyDeadline) > new Date());
                   const matchValue = matchingByJobId[job.id];
                   const matchState = matchValue === true ? 'ready' : matchValue === false ? 'pending' : 'loading';
                   const matchText = matchState === 'ready'
@@ -238,11 +239,11 @@ export default function CompanyJobsPage() {
                               <StatusBadge status={job.campaign.status} />
                             </div>
                           )}
-                          {job.campaign?.deadline && (
+                          {job.campaign?.companyDeadline && (
                             <div className="flex items-center gap-2 mb-2">
                               <span className="text-sm text-gray-600">Deadline:</span>
                               <span className="text-sm font-medium">
-                                {new Date(job.campaign.deadline).toLocaleDateString('fr-FR')}
+                                {new Date(job.campaign.companyDeadline).toLocaleDateString('fr-FR')}
                               </span>
                             </div>
                           )}

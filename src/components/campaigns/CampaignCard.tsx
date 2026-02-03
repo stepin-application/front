@@ -4,7 +4,7 @@ import { Calendar, MapPin, Users, Building, GraduationCap } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Campaign } from '@/types/campaign';
 import Link from 'next/link';
 import { campaignPath } from '@/lib/utils';
@@ -69,7 +69,6 @@ export default function CampaignCard({ campaign, isAuthenticated = false, userRo
         <div className="flex flex-col sm:flex-row items-start justify-between gap-2 sm:gap-0">
           <div className="flex items-center space-x-3">
             <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
-              <AvatarImage src={createdBy.logo || undefined} alt={createdBy.name} />
               <AvatarFallback>
                 {campaign.type === 'company' ? (
                   <Building className="h-4 w-4 sm:h-5 sm:w-5" />

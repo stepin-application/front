@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { jobOpenings, studentProfiles, studentApplications } from '@/lib/api';
+import { campaigns, jobOpenings, studentProfiles, studentApplications } from '@/lib/api';
 import { ArrowLeft, Briefcase, User, CheckCircle, AlertCircle, Edit } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +53,7 @@ export default function JobApplicationPage() {
   const [success, setSuccess] = useState(false);
   const [eligibility, setEligibility] = useState<ApplicationEligibility | null>(null);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
+  const [timingBlock, setTimingBlock] = useState<{ title: string; message: string } | null>(null);
 
   const jobId = params.id as string;
 
@@ -85,6 +86,36 @@ export default function JobApplicationPage() {
           // Continue with profile check even if eligibility check fails
         }
         
+        // Check campaign deadlines
+        if (jobData?.campaignId) {
+          try {
+            const campaignData = await campaigns.getById(jobData.campaignId);
+            const now = new Date();
+            const companyDeadline = campaignData?.companyDeadline ? new Date(campaignData.companyDeadline) : null;
+            const studentDeadline = campaignData?.studentDeadline ? new Date(campaignData.studentDeadline) : null;
+
+            if (companyDeadline && now < companyDeadline) {
+              setTimingBlock({
+                title: "Candidatures pas encore ouvertes",
+                message: `Les candidatures ouvriront après la deadline entreprises le ${companyDeadline.toLocaleDateString('fr-FR')}.`,
+              });
+              setLoading(false);
+              return;
+            }
+
+            if (studentDeadline && now > studentDeadline) {
+              setTimingBlock({
+                title: "Deadline dépassée",
+                message: `La deadline pour candidater était le ${studentDeadline.toLocaleDateString('fr-FR')}.`,
+              });
+              setLoading(false);
+              return;
+            }
+          } catch (campaignError) {
+            console.error('Error checking campaign deadlines:', campaignError);
+          }
+        }
+
         // Check if student has a profile
         try {
           const profileExists = await studentProfiles.exists();
@@ -166,6 +197,24 @@ export default function JobApplicationPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (timingBlock) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <AlertCircle className="w-16 h-16 text-blue-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{timingBlock.title}</h2>
+          <p className="text-gray-600 mb-4">{timingBlock.message}</p>
+          <button
+            onClick={() => router.push('/campaigns')}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Retour aux campagnes
+          </button>
+        </div>
       </div>
     );
   }

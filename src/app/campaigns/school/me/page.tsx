@@ -13,7 +13,8 @@ interface Campaign {
   id: string;
   title: string;
   description: string;
-  deadline: string;
+  companyDeadline: string;
+  studentDeadline: string;
   startDate: string;
   endDate: string;
   status: 'OPEN' | 'LOCKED';
@@ -132,7 +133,8 @@ export default function SchoolCampaignsPage() {
                           ? new Date(campaign.startDate || campaign.createdAt).toLocaleDateString('fr-FR')
                           : '—'}
                       </span>
-                      <span>⏰ Deadline: {new Date(campaign.deadline).toLocaleDateString('fr-FR')}</span>
+                      <span>⏰ Deadline entreprises: {new Date(campaign.companyDeadline).toLocaleDateString('fr-FR')}</span>
+                      <span>Deadline etudiants: {new Date(campaign.studentDeadline).toLocaleDateString('fr-FR')}</span>
                       {campaign.lockedAt && (
                         <span>Clôture: {new Date(campaign.lockedAt).toLocaleDateString('fr-FR')}</span>
                       )}

@@ -8,7 +8,8 @@ interface CreateCampaignData {
   schoolId: string;
   name: string;
   description: string;
-  deadline: string;
+  companyDeadline: string;
+  studentDeadline: string;
   startDate: string;
 }
 
@@ -54,7 +55,7 @@ export function useCampaigns(): UseCampaignsReturn {
         return rawStatus.toLowerCase();
       }
 
-      const deadline = campaign?.deadline ? new Date(campaign.deadline) : null;
+      const deadline = campaign?.studentDeadline ? new Date(campaign.studentDeadline) : null;
       const startDate = campaign?.startDate ? new Date(campaign.startDate) : null;
       const now = Date.now();
 
@@ -74,10 +75,10 @@ export function useCampaigns(): UseCampaignsReturn {
       id: campaign?.id,
       title: campaign?.name ?? campaign?.title ?? 'Campagne',
       description: campaign?.description ?? '',
-      companyDeadline: campaign?.deadline ?? '',
-      studentDeadline: campaign?.deadline ?? '',
+      companyDeadline: campaign?.companyDeadline ?? '',
+      studentDeadline: campaign?.studentDeadline ?? '',
       startDate: campaign?.startDate ?? campaign?.createdAt ?? '',
-      endDate: campaign?.deadline ?? '',
+      endDate: campaign?.studentDeadline ?? '',
       location: campaign?.location ?? '—',
       status: deriveStatus(),
       maxParticipants: campaign?.maxParticipants ?? undefined,
@@ -148,16 +149,26 @@ export function useCampaigns(): UseCampaignsReturn {
       if (!data.description || data.description.trim().length < 10) {
         throw new Error('La description doit contenir au moins 10 caractères');
       }
-      if (!data.deadline) {
-        throw new Error('La deadline est requise');
+      if (!data.companyDeadline) {
+        throw new Error('La deadline entreprises est requise');
+      }
+      if (!data.studentDeadline) {
+        throw new Error('La deadline étudiants est requise');
       }
       if (!data.startDate) {
         throw new Error('La date de debut est requise');
       }
-      const deadlineDate = new Date(data.deadline);
+      const companyDeadlineDate = new Date(data.companyDeadline);
+      const studentDeadlineDate = new Date(data.studentDeadline);
       const startDate = new Date(data.startDate);
-      if (deadlineDate <= new Date()) {
-        throw new Error('La deadline doit être dans le futur');
+      if (companyDeadlineDate <= new Date()) {
+        throw new Error('La deadline entreprises doit être dans le futur');
+      }
+      if (studentDeadlineDate <= companyDeadlineDate) {
+        throw new Error('La deadline étudiants doit être après la deadline entreprises');
+      }
+      if (studentDeadlineDate <= new Date()) {
+        throw new Error('La deadline étudiants doit être dans le futur');
       }
 
       const campaign = await campaigns.create(data);
@@ -215,16 +226,30 @@ export function useCampaigns(): UseCampaignsReturn {
       if (data.description !== undefined && data.description.trim().length < 10) {
         throw new Error('La description doit contenir au moins 10 caractères');
       }
-      if (data.deadline !== undefined) {
-        const deadlineDate = new Date(data.deadline);
-        if (deadlineDate <= new Date()) {
-          throw new Error('La deadline doit être dans le futur');
+      if (data.companyDeadline !== undefined) {
+        const companyDeadlineDate = new Date(data.companyDeadline);
+        if (companyDeadlineDate <= new Date()) {
+          throw new Error('La deadline entreprises doit être dans le futur');
         }
-        if (data.startDate !== undefined) {
-          const startDate = new Date(data.startDate);
-          if (deadlineDate < startDate) {
-            throw new Error('La deadline doit être après la date de début');
-          }
+      }
+      if (data.studentDeadline !== undefined) {
+        const studentDeadlineDate = new Date(data.studentDeadline);
+        if (studentDeadlineDate <= new Date()) {
+          throw new Error('La deadline étudiants doit être dans le futur');
+        }
+      }
+      if (data.companyDeadline !== undefined && data.studentDeadline !== undefined) {
+        const companyDeadlineDate = new Date(data.companyDeadline);
+        const studentDeadlineDate = new Date(data.studentDeadline);
+        if (studentDeadlineDate <= companyDeadlineDate) {
+          throw new Error('La deadline étudiants doit être après la deadline entreprises');
+        }
+      }
+      if (data.studentDeadline !== undefined && data.startDate !== undefined) {
+        const studentDeadlineDate = new Date(data.studentDeadline);
+        const startDate = new Date(data.startDate);
+        if (studentDeadlineDate < startDate) {
+          throw new Error('La deadline étudiants doit être après la date de début');
         }
       }
 

@@ -111,7 +111,8 @@ export default function NewSchoolCampaignPage() {
       schoolId: user.schoolId,
       name: formData.title,
       description: formData.description,
-      deadline: new Date(formData.companyDeadline).toISOString(),
+      companyDeadline: new Date(formData.companyDeadline).toISOString(),
+      studentDeadline: new Date(formData.studentDeadline).toISOString(),
       startDate: new Date(formData.startDate).toISOString(),
     });
 

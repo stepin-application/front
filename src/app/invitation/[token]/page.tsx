@@ -13,9 +13,10 @@ interface Campaign {
   id: string;
   title: string;
   description: string;
-  deadline: string;
+  companyDeadline: string;
+  studentDeadline: string;
   startDate: string;
-  endDate: string;
+  endDate?: string;
   location: string;
   status: 'OPEN' | 'LOCKED';
   school: {
@@ -154,7 +155,7 @@ export default function InvitationPage() {
     );
   }
 
-  const isDeadlinePassed = new Date(campaign.deadline) < new Date();
+  const isDeadlinePassed = new Date(campaign.companyDeadline) < new Date();
   const isLocked = campaign.status === 'LOCKED';
   const canRespond = !isDeadlinePassed && !isLocked;
 
@@ -183,7 +184,7 @@ export default function InvitationPage() {
               <div className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
                 <span className="text-sm">
-                  {new Date(campaign.startDate).toLocaleDateString('fr-FR')} - {new Date(campaign.endDate).toLocaleDateString('fr-FR')}
+                  {new Date(campaign.startDate).toLocaleDateString('fr-FR')} - {new Date(campaign.studentDeadline).toLocaleDateString('fr-FR')}
                 </span>
               </div>
               <div className="flex items-center gap-1">
@@ -199,7 +200,7 @@ export default function InvitationPage() {
             <div className="flex items-center gap-4">
               <StatusBadge status={campaign.status} />
               <div className="flex-1">
-                <DeadlineWarning deadline={campaign.deadline} />
+                <DeadlineWarning deadline={campaign.companyDeadline} />
               </div>
             </div>
 
@@ -253,7 +254,7 @@ export default function InvitationPage() {
             {/* Deadline info */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-800">
-                <strong>Deadline de participation :</strong> {new Date(campaign.deadline).toLocaleDateString('fr-FR', { 
+                <strong>Deadline de participation :</strong> {new Date(campaign.companyDeadline).toLocaleDateString('fr-FR', { 
                   day: 'numeric', 
                   month: 'long', 
                   year: 'numeric',
