@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -159,7 +159,7 @@ export default function JobApplicationPage() {
       setError(null);
       
       // Apply to the job using the student applications API
-      await studentApplications.createWithStudentId(user!.id, {
+      await studentApplications.create( {
         campaignId: job.campaignId,
         jobId: jobId,
         companyId: job.companyId || '', // Use empty string as fallback
