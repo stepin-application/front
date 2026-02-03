@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 
 export default function CompanyRegisterPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 bg-gray-50">
-      <div className="w-full max-w-md mx-auto px-4 text-center bg-white rounded-xl border border-gray-200 p-8">
+    <div className="min-h-screen flex items-center justify-center py-12 bg-transparent">
+      <div className="w-full max-w-md mx-auto px-4 text-center bg-white/20 rounded-xl border border-gray-200 p-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-3">
           Inscription désactivée
         </h1>

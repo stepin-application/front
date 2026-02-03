@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -160,7 +160,7 @@ export default function InvitationPage() {
   const canRespond = !isDeadlinePassed && !isLocked;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
+    <div className="min-h-screen py-12">
       <div className="max-w-4xl mx-auto px-4">
         <Link href="/campaigns/company/invitations" className="inline-flex items-center text-sm text-gray-500 hover:text-gray-900 mb-6">
           <ArrowLeft className="w-4 h-4 mr-1" />

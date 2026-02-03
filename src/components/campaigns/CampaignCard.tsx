@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { Calendar, MapPin, Users, Building, GraduationCap } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,7 +16,7 @@ export default function AdminHomePage() {
   }, [user, router]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 py-12">
+    <div className="min-h-screen py-12">
       <div className="max-w-4xl mx-auto px-4">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">
           Administration

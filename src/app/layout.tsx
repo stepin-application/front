@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+﻿import type { Metadata } from "next";
+import { Fraunces, Sora, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import { Toaster } from "sonner";
@@ -7,13 +7,19 @@ import Background from "@/components/ui/Background";
 import DevNav from "@/components/DevNav";
 import { AuthProvider } from "@/contexts/AuthContext";
 
-const geistSans = Geist({
+const sora = Sora({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-geist-sans",
+  variable: "--font-sora",
 });
 
-const geistMono = Geist_Mono({
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-fraunces",
+});
+
+const geistMono = JetBrains_Mono({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-geist-mono",
@@ -31,7 +37,7 @@ export default function RootLayout({
 }>) {
 
   return (
-    <html lang="fr" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="fr" className={`${sora.variable} ${fraunces.variable} ${geistMono.variable}`}>
       <body className="min-h-screen relative">
         <AuthProvider>
           <div className="absolute inset-0 -z-10" />

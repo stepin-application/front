@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo, useEffect } from "react";
 import { useCampaigns } from "@/hooks/useCampaigns";
@@ -228,7 +228,7 @@ export default function CampaignsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-slate-950 dark:to-slate-900 py-12 relative overflow-hidden">
+    <div className="min-h-screen bg-transparent py-12 relative overflow-hidden">
       <Background />
 
       <div className="container mx-auto px-4 relative">

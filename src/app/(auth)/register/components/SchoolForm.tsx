@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from 'react';
 import { GraduationCap, Mail, Lock, Eye, EyeOff, MapPin, Globe, Phone, Users, Info } from 'lucide-react';

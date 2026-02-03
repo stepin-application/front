@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -64,8 +64,8 @@ export default function ChangePasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 bg-gray-50">
-      <div className="w-full max-w-md mx-auto px-4 bg-white rounded-xl border border-gray-200 p-8">
+    <div className="min-h-screen flex items-center justify-center py-12 bg-transparent">
+      <div className="w-full max-w-md mx-auto px-4 bg-white/20 rounded-xl border border-gray-200 p-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">
           Changer le mot de passe
         </h1>
@@ -76,7 +76,7 @@ export default function ChangePasswordPage() {
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
             <label className="block text-sm text-gray-700 mb-1">Email</label>
-            <div className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-700">
+            <div className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-transparent text-gray-700">
               {email || "Utilisateur non identifié"}
             </div>
           </div>

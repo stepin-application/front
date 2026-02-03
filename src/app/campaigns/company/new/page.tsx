@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from 'react';
 import { Suspense } from 'react';
@@ -208,7 +208,7 @@ function NewCompanyCampaignPageContent() {
         {isInvitationResponse && campaignInfo && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <p className="text-sm text-blue-800">
-              ℹ️ Vous répondez à l'invitation de <strong>{campaignInfo.schoolName}</strong> pour <strong>{campaignInfo.campaignName}</strong>
+              â„¹ï¸ Vous répondez à l'invitation de <strong>{campaignInfo.schoolName}</strong> pour <strong>{campaignInfo.campaignName}</strong>
             </p>
           </div>
         )}

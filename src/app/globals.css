@@ -6,7 +6,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-sora);
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -44,38 +44,51 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 0.75rem;
+  --font-display: var(--font-fraunces);
+
+  --brand-50: #fff7ed;
+  --brand-100: #ffedd5;
+  --brand-200: #fed7aa;
+  --brand-300: #fdba74;
+  --brand-400: #fb923c;
+  --brand-500: #f97316;
+  --brand-600: #ea580c;
+  --brand-700: #c2410c;
+  --brand-800: #9a3412;
+  --brand-900: #7c2d12;
+
+  --background: #fffaf5;
+  --foreground: #1f2937;
+  --card: #ffffff;
+  --card-foreground: #1f2937;
+  --popover: #ffffff;
+  --popover-foreground: #1f2937;
+  --primary: var(--brand-600);
+  --primary-foreground: #ffffff;
+  --secondary: #fff3e6;
+  --secondary-foreground: #1f2937;
+  --muted: #fff3e6;
+  --muted-foreground: #6b7280;
+  --accent: #ffe7d1;
+  --accent-foreground: #1f2937;
+  --destructive: #dc2626;
+  --border: #f1e7da;
+  --input: #f1e7da;
+  --ring: #f97316;
+  --chart-1: #f97316;
+  --chart-2: #fb923c;
+  --chart-3: #fdba74;
+  --chart-4: #f59e0b;
+  --chart-5: #fbbf24;
+  --sidebar: #fff7ed;
+  --sidebar-foreground: #1f2937;
+  --sidebar-primary: var(--brand-600);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ffe7d1;
+  --sidebar-accent-foreground: #1f2937;
+  --sidebar-border: #f1e7da;
+  --sidebar-ring: #f97316;
 }
 
 .dark {
@@ -118,20 +131,72 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(249, 115, 22, 0.12), transparent 35%),
+      radial-gradient(circle at 85% 15%, rgba(251, 191, 36, 0.18), transparent 30%),
+      radial-gradient(circle at 10% 80%, rgba(251, 146, 60, 0.12), transparent 35%);
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
   }
 }
 
 @layer utilities {
+  /* Brand overrides to align Tailwind blues with StepIn palette */
+  .bg-blue-50 { background-color: #fff7ed; }
+  .bg-blue-100 { background-color: #ffedd5; }
+  .bg-blue-500 { background-color: var(--brand-500); }
+  .bg-blue-600 { background-color: var(--brand-600); }
+  .bg-blue-700 { background-color: var(--brand-700); }
+  .text-blue-600 { color: var(--brand-600); }
+  .text-blue-700 { color: var(--brand-700); }
+  .text-blue-800 { color: var(--brand-800); }
+  .text-blue-900 { color: var(--brand-900); }
+  .border-blue-200 { border-color: #fed7aa; }
+  .border-blue-300 { border-color: #fdba74; }
+  .ring-blue-500 { --tw-ring-color: var(--brand-500); }
+  .bg-purple-100 { background-color: #ffedd5; }
+  .bg-purple-200 { background-color: #fed7aa; }
+  .text-purple-600 { color: var(--brand-600); }
+  .text-purple-700 { color: var(--brand-700); }
+  .border-purple-100 { border-color: #fed7aa; }
+
+  /* Let the global background show through common page wrappers */
+  .bg-gray-50 { background-color: rgba(255, 250, 245, 0.6) !important; }
+  .bg-gray-100 { background-color: rgba(255, 245, 235, 0.75) !important; }
+  .bg-white { background-color: rgba(255, 252, 248, 0.92) !important; }
+  .bg-slate-50 { background-color: rgba(255, 250, 245, 0.6) !important; }
+  .bg-neutral-50 { background-color: rgba(255, 250, 245, 0.6) !important; }
+
+  /* Make common white overlays translucent so the global background shows through */
+  .bg-white\/95 { background-color: rgba(255, 252, 248, 0.96) !important; }
+  .bg-white\/90 { background-color: rgba(255, 251, 245, 0.95) !important; }
+  .bg-white\/85 { background-color: rgba(255, 250, 242, 0.94) !important; }
+  .bg-white\/80 { background-color: rgba(255, 249, 240, 0.92) !important; }
+  .bg-white\/70 { background-color: rgba(255, 248, 236, 0.9) !important; }
+  .bg-white\/60 { background-color: rgba(255, 247, 233, 0.88) !important; }
+  .bg-white\/50 { background-color: rgba(255, 246, 230, 0.86) !important; }
+
   /* Global dark-mode overrides for common hardcoded Tailwind colors */
   .dark .bg-white {
-    background-color: var(--card);
+    background-color: rgba(18, 18, 18, 0.2) !important;
   }
   .dark .bg-gray-50 {
-    background-color: color-mix(in oklch, var(--background) 92%, black);
+    background-color: color-mix(in oklch, var(--background) 68%, black);
   }
   .dark .bg-gray-100 {
-    background-color: color-mix(in oklch, var(--background) 85%, black);
+    background-color: color-mix(in oklch, var(--background) 64%, black);
   }
+  .dark .bg-white\/95 { background-color: rgba(18, 18, 18, 0.2) !important; }
+  .dark .bg-white\/90 { background-color: rgba(18, 18, 18, 0.2) !important; }
+  .dark .bg-white\/85 { background-color: rgba(18, 18, 18, 0.2) !important; }
+  .dark .bg-white\/80 { background-color: rgba(18, 18, 18, 0.2) !important; }
+  .dark .bg-white\/70 { background-color: rgba(18, 18, 18, 0.2) !important; }
+  .dark .bg-white\/60 { background-color: rgba(18, 18, 18, 0.2) !important; }
+  .dark .bg-white\/50 { background-color: rgba(18, 18, 18, 0.2) !important; }
   .dark .bg-blue-50 {
     background-color: color-mix(in oklch, var(--background) 85%, #1e40af);
   }

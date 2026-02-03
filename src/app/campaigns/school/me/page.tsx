@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -89,7 +89,7 @@ export default function SchoolCampaignsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
+    <div className="min-h-screen py-12">
       <div className="max-w-6xl mx-auto px-4">
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-800">
@@ -129,7 +129,7 @@ export default function SchoolCampaignsPage() {
                     <p className="text-sm text-gray-600 mb-3 line-clamp-2">{campaign.description}</p>
                     <div className="flex items-center gap-4 text-sm text-gray-600">
                       <span>
-                        📅 {campaign.startDate || campaign.createdAt
+                        🗓 {campaign.startDate || campaign.createdAt
                           ? new Date(campaign.startDate || campaign.createdAt).toLocaleDateString('fr-FR')
                           : '—'}
                       </span>

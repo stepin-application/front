@@ -1,4 +1,4 @@
-import { AlertCircle, Clock } from 'lucide-react';
+﻿import { AlertCircle, Clock } from 'lucide-react';
 
 interface DeadlineWarningProps {
   deadline: string;
@@ -27,7 +27,7 @@ export default function DeadlineWarning({ deadline }: DeadlineWarningProps) {
       <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
         <Clock className="w-5 h-5 text-red-600" />
         <p className="text-sm text-red-800 font-medium">
-          ⚠️ Deadline dans {diffHours} heure{diffHours > 1 ? 's' : ''} !
+          âš ï¸ Deadline dans {diffHours} heure{diffHours > 1 ? 's' : ''} !
         </p>
       </div>
     );

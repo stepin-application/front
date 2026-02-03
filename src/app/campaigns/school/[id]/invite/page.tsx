@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -154,7 +154,7 @@ export default function SchoolCampaignInvitePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10">
+    <div className="min-h-screen py-10">
       <div className="max-w-5xl mx-auto px-4">
         <Link
           href="/campaigns/school/me"
@@ -212,7 +212,7 @@ export default function SchoolCampaignInvitePage() {
                     onClick={() => toggleSelect(company.id)}
                     className={`flex items-center justify-between border rounded-lg p-3 text-left transition ${
                       invited
-                        ? "border-gray-200 bg-gray-50 cursor-not-allowed"
+                        ? "border-gray-200 bg-transparent cursor-not-allowed"
                         : selected
                         ? "border-blue-500 bg-blue-50"
                         : "border-gray-200 hover:border-gray-400"

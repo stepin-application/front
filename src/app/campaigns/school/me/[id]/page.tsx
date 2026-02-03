@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -111,7 +111,7 @@ export default function SchoolCampaignDetailsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <div className="max-w-5xl mx-auto px-4 py-8">
         
         {/* Header */}

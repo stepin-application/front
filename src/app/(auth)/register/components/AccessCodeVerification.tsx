@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -51,7 +51,7 @@ export default function AccessCodeVerification({ onSuccess, type }: AccessCodeVe
   return (
     <div className="min-h-screen flex items-center justify-center py-12">
       <div className="max-w-md w-full mx-auto px-4">
-        <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 backdrop-blur-sm bg-opacity-95">
+        <div className="bg-white/20 p-8 rounded-2xl shadow-lg border border-gray-100 backdrop-blur-sm bg-opacity-95">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-gray-50 to-gray-100 mb-4">
               {icon}
@@ -76,7 +76,7 @@ export default function AccessCodeVerification({ onSuccess, type }: AccessCodeVe
                   name="code"
                   type="text"
                   required
-                  className="block w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 focus:border-purple-500 text-center text-lg tracking-[0.5em] font-mono bg-gray-50"
+                  className="block w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 focus:border-purple-500 text-center text-lg tracking-[0.5em] font-mono bg-transparent"
                   placeholder="• • • • • •"
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase())}
